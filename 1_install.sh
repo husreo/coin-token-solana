@@ -1,2 +1,2 @@
 #!/usr/bin/env bash
-rm -rf bin obj
+npm install

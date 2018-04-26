@@ -4,8 +4,11 @@ output_path=$(pwd)/bin/Debug/netstandard2.0/publish
 
 set -e
 
-echo "Make clean..."
-source clean.sh
+echo "Cleaning..."
+source scripts/clean.sh
+
+echo "Preprocessing..."
+source scripts/preprocess.sh
 
 echo "Building project..."
 dotnet publish

@@ -1,0 +1,5 @@
+{
+  "devDependencies": {
+    "c-preprocessor": "^0.2.12"
+  }
+}

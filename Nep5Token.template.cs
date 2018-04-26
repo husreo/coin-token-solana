@@ -8,10 +8,10 @@ namespace NEP5Token
 {
     public class Nep5Token : SmartContract
     {
-        public static readonly byte[] Owner = "AK2nJJpJr6o664CWJKi1QRXjqeic2zRp8y".ToScriptHash();
-        public static string Name() => "MyWish Token";
-        public static string Symbol() => "WISH";
-        public static byte Decimals() => 8;
+        public static readonly byte[] Owner = "D_OWNER".ToScriptHash();
+        public static string Name() => "D_NAME";
+        public static string Symbol() => "D_SYMBOL";
+        public static byte Decimals() => D_DECIMALS;
 
         public delegate void Action();
         public delegate void Action<in T1>(T1 arg1);
