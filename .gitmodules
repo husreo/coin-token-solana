@@ -1,0 +1,3 @@
+[submodule "neo-compiler"]
+	path = neo-compiler
+	url = https://github.com/neo-project/neo-compiler

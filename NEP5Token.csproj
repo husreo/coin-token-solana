@@ -11,4 +11,22 @@
   <ItemGroup>
     <PackageReference Include="Neo.SmartContract.Framework" Version="2.7.3" />
   </ItemGroup>
+  <ItemGroup>
+    <Compile Remove="neo-compiler\**" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Remove="neo-compiler\**" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Remove="neo-compiler\**" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Remove="node_modules\**" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Remove="node_modules\**" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Remove="node_modules\**" />
+  </ItemGroup>
 </Project>
