@@ -75,6 +75,9 @@ namespace NEP5Token
                 BigInteger value = (BigInteger) args[1];
                 return Mint(to, value);
             }
+            if (operation == "finishMinting") return FinishMinting();
+            if (operation == "mintingFinished") return MintingFinished();
+            
             if (operation == "pause") return Pause();
             if (operation == "paused") return Paused();
             if (operation == "unpause") return Unpause();
