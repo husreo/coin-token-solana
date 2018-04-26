@@ -15,6 +15,12 @@ namespace NEP5Token
 
         [DisplayName("transfer")] 
         public static event Action<byte[], byte[], BigInteger> Transferred;
+        
+        [DisplayName("mint")] 
+        public static event Action<byte[], BigInteger> Minted;
+        
+        [DisplayName("mintFinish")]
+        public static event Action MintFinished;
 
         public static Object Main(string operation, params object[] args)
         {
@@ -156,10 +162,26 @@ namespace NEP5Token
         public static bool Mint(byte[] to, BigInteger value)
         {
             if (!Runtime.CheckWitness(Owner)) return false;
+            if (MintingFinished()) return false;
             Storage.Put(Storage.CurrentContext, to, BalanceOf(to) + value);
             Storage.Put(Storage.CurrentContext, "totalSupply", TotalSupply() + value);
+            Minted(to, value);
             Transferred(null, to, value);
             return true;
+        }
+
+        public static bool FinishMinting()
+        {
+            if (!Runtime.CheckWitness(Owner)) return false;
+            if (MintingFinished()) return false;
+            Storage.Put(Storage.CurrentContext, "mintingFinished", "mintingFinished");
+            MintFinished();
+            return true;
+        }
+
+        public static bool MintingFinished()
+        {
+            return Storage.Get(Storage.CurrentContext, "mintingFinished").AsString() == "mintingFinished";
         }
         
         public static bool Pause()
