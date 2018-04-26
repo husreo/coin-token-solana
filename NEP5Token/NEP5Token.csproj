@@ -1,0 +1,14 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>netcoreapp2.0</TargetFramework>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Remove="Nep5Token.template.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Nep5Token.template.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Neo.SmartContract.Framework" Version="2.7.3" />
+  </ItemGroup>
+</Project>

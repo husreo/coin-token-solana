@@ -13,4 +13,4 @@ dotnet publish
 echo "Compiling dll to avm..."
 dotnet \
     $(pwd)/neo-compiler/neon/bin/Debug/netcoreapp2.0/publish/neon.dll \
-    $(pwd)/bin/Debug/netstandard2.0/publish/NEP5Token.dll
+    $(pwd)/NEP5Token/bin/Debug/netcoreapp2.0/publish/NEP5Token.dll
