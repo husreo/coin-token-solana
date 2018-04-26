@@ -13,6 +13,11 @@ namespace NEP5Token
         public static string Symbol() => "WISH";
         public static byte Decimals() => 8;
 
+        public delegate void Action();
+        public delegate void Action<in T1>(T1 arg1);
+        public delegate void Action<in T1, in T2>(T1 arg1, T2 arg2);
+        public delegate void Action<in T1, in T2, in T3>(T1 arg1, T2 arg2, T3 arg3);
+        
         [DisplayName("transfer")] 
         public static event Action<byte[], byte[], BigInteger> Transferred;
         
