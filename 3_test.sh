@@ -10,4 +10,4 @@ echo "Publishing tests..."
 dotnet publish Tests --configuration Release
 
 echo "Executing tests..."
-dotnet test Tests --no-build --configuration Release
+dotnet test Tests --no-build --configuration Release -v n
