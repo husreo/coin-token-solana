@@ -11,4 +11,7 @@
   <ItemGroup>
     <PackageReference Include="Neo.SmartContract.Framework" Version="2.7.3" />
   </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\NEP5.Common\NEP5.Common.csproj" />
+  </ItemGroup>
 </Project>

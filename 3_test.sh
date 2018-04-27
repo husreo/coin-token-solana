@@ -3,11 +3,17 @@ set -e
 
 echo "Cleaning..."
 rm -rf \
-    Tests/bin \
-    Tests/obj
+    NEP5.Contract.Tests/bin \
+    NEP5.Contract.Tests/obj
+
+echo "Preprocessing..."
+./node_modules/.bin/c-preprocessor --config \
+    c-preprocessor-config.json \
+    NEP5.Contract.Tests/Nep5TokenTest.template.cs \
+    NEP5.Contract.Tests/Nep5TokenTest.cs
 
 echo "Publishing tests..."
-dotnet publish Tests --configuration Release
+dotnet publish NEP5.Contract.Tests --configuration Release
 
 echo "Executing tests..."
-dotnet test Tests --no-build --configuration Release -v n
+dotnet test NEP5.Contract.Tests --no-build --configuration Release -v n

@@ -2,11 +2,20 @@
   <PropertyGroup>
     <TargetFramework>netcoreapp2.0</TargetFramework>
   </PropertyGroup>
+    <ItemGroup>
+    <Compile Remove="Nep5TokenTest.template.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Nep5TokenTest.template.cs" />
+  </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="15.7.0" />
     <PackageReference Include="Neo" Version="2.7.4" />
     <PackageReference Include="Neo.VM" Version="2.2.0" />
     <PackageReference Include="NUnit" Version="3.10.1" />
     <PackageReference Include="NUnit3TestAdapter" Version="3.10.0" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\NEP5.Common\NEP5.Common.csproj" />
   </ItemGroup>
 </Project>

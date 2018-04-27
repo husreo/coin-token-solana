@@ -1,10 +1,11 @@
 ﻿using Neo.SmartContract.Framework;
 using Neo.SmartContract.Framework.Services.Neo;
+using NEP5.Common;
 using System;
 using System.ComponentModel;
 using System.Numerics;
 
-namespace NEP5Token
+namespace NEP5.Contract
 {
     public class Nep5Token : SmartContract
     {
@@ -26,92 +27,33 @@ namespace NEP5Token
         [DisplayName("mintFinish")]
         public static event Action MintFinished;
 
-        public static Object Main(string operation, params object[] args)
+        public static Object Main(string operation, object a1, object a2, object a3, object a4)
         {
-            if (Owner() == new byte[] {0})
-            {
-                if (operation == "deploy")
-                {
-                    if (args.Length != 1) return false;
-                    byte[] originator = (byte[]) args[0];
-                    return Deploy(originator);
-                }
-
-                return false;
-            }
+            if (operation == Operations.Deploy) return Deploy((byte[]) a1);
+            if (operation == Operations.Owner) return Owner();
+            if (operation == Operations.Name) return Name();
+            if (operation == Operations.Symbol) return Symbol();
+            if (operation == Operations.Decimals) return Decimals();
+            if (operation == Operations.BalanceOf) return BalanceOf((byte[]) a1);
+            if (operation == Operations.Transfer) return Transfer((byte[]) a1, (byte[]) a2, (BigInteger) a3);
+            if (operation == Operations.TotalSupply) return TotalSupply();
+            if (operation == Operations.Allowance) return Allowance((byte[]) a1, (byte[]) a2);
+            if (operation == Operations.Approve) return Approve((byte[]) a1, (byte[]) a2, (BigInteger) a3);
+            if (operation == Operations.TransferFrom) return TransferFrom((byte[]) a1, (byte[]) a2, (byte[]) a3, (BigInteger) a4);
+            if (operation == Operations.Mint) return Mint((byte[]) a1, (BigInteger) a2);
+            if (operation == Operations.FinishMinting) return FinishMinting();
+            if (operation == Operations.MintingFinished) return MintingFinished();
+            if (operation == Operations.Pause) return Pause();
+            if (operation == Operations.Paused) return Paused();
+            if (operation == Operations.Unpause) return Unpause();
+            if (operation == Operations.TransferOwnership) return TransferOwnership((byte[]) a1);
             
-            if (operation == "owner") return Owner();
-            if (operation == "name") return Name();
-            if (operation == "symbol") return Symbol();
-            if (operation == "decimals") return Decimals();
-            if (operation == "balanceOf")
-            {
-                if (args.Length != 1) return 0;
-                byte[] address = (byte[]) args[0];
-                return BalanceOf(address);
-            }
-            if (operation == "transfer")
-            {
-                if (args.Length != 3) return false;
-                byte[] from = (byte[]) args[0];
-                byte[] to = (byte[]) args[1];
-                BigInteger value = (BigInteger) args[2];
-                return Transfer(from, to, value);
-            }
-            if (operation == "totalSupply") return TotalSupply();
-
-            if (operation == "allowance")
-            {
-                if (args.Length != 2) return 0;
-                byte[] from = (byte[]) args[0];
-                byte[] to = (byte[]) args[1];
-                return Allowance(from, to);
-            }
-            if (operation == "approve")
-            {
-                if (args.Length != 3) return false;
-                byte[] from = (byte[]) args[0];
-                byte[] to = (byte[]) args[1];
-                BigInteger value = (BigInteger) args[2];
-                return Approve(from, to, value);
-            }
-            if (operation == "transferFrom")
-            {
-                if (args.Length != 4) return false;
-                byte[] originator = (byte[]) args[0];
-                byte[] from = (byte[]) args[1];
-                byte[] to = (byte[]) args[2];
-                BigInteger value = (BigInteger) args[3];
-                return TransferFrom(originator, from, to, value);
-            }
-
-            if (operation == "mint")
-            {
-                if (args.Length != 2) return false;
-                byte[] to = (byte[]) args[0];
-                BigInteger value = (BigInteger) args[1];
-                return Mint(to, value);
-            }
-            if (operation == "finishMinting") return FinishMinting();
-            if (operation == "mintingFinished") return MintingFinished();
-            
-            if (operation == "pause") return Pause();
-            if (operation == "paused") return Paused();
-            if (operation == "unpause") return Unpause();
-
-            if (operation == "transferOwnership")
-            {
-                if (args.Length != 1) return false;
-                byte[] to = (byte[]) args[0];
-                return TransferOwnership(to);
-            }
-            
-            return true;
+            return false;
         }
 
         public static bool Deploy(byte[] originator)
         {
-            Storage.Put(Storage.CurrentContext, "owner", originator);
+            Storage.Put(Storage.CurrentContext, Constants.Owner, originator);
             return true;
         }
 
@@ -145,7 +87,7 @@ namespace NEP5Token
         
         public static BigInteger TotalSupply()
         {
-            return Storage.Get(Storage.CurrentContext, "totalSupply").AsBigInteger();
+            return Storage.Get(Storage.CurrentContext, Constants.TotalSupply).AsBigInteger();
         }
 
         public static BigInteger Allowance(byte[] from, byte[] to)
@@ -197,7 +139,7 @@ namespace NEP5Token
             if (!Runtime.CheckWitness(Owner())) return false;
             if (MintingFinished()) return false;
             Storage.Put(Storage.CurrentContext, to, BalanceOf(to) + value);
-            Storage.Put(Storage.CurrentContext, "totalSupply", TotalSupply() + value);
+            Storage.Put(Storage.CurrentContext, Constants.TotalSupply, TotalSupply() + value);
             Minted(to, value);
             Transferred(null, to, value);
             return true;
@@ -207,34 +149,34 @@ namespace NEP5Token
         {
             if (!Runtime.CheckWitness(Owner())) return false;
             if (MintingFinished()) return false;
-            Storage.Put(Storage.CurrentContext, "mintingFinished", "mintingFinished");
+            Storage.Put(Storage.CurrentContext, Constants.MintingFinished, Constants.MintingFinished);
             MintFinished();
             return true;
         }
 
         public static bool MintingFinished()
         {
-            return Storage.Get(Storage.CurrentContext, "mintingFinished").AsString() == "mintingFinished";
+            return Storage.Get(Storage.CurrentContext, Constants.MintingFinished).AsString() == Constants.MintingFinished;
         }
         
         public static bool Pause()
         {
             if (!Runtime.CheckWitness(Owner())) return false;
             if (Paused()) return false;
-            Storage.Put(Storage.CurrentContext, "paused", "paused");
+            Storage.Put(Storage.CurrentContext, Constants.Paused, Constants.Paused);
             return true;
         }
 
         public static bool Paused()
         {
-            return Storage.Get(Storage.CurrentContext, "paused").AsString() == "paused";
+            return Storage.Get(Storage.CurrentContext, Constants.Paused).AsString() == Constants.Paused;
         }
         
         public static bool Unpause()
         {
             if (!Runtime.CheckWitness(Owner())) return false;
             if (!Paused()) return false;
-            Storage.Delete(Storage.CurrentContext, "paused");
+            Storage.Delete(Storage.CurrentContext, Constants.Paused);
             return true;
         }
         
@@ -243,13 +185,13 @@ namespace NEP5Token
             byte[] owner = Owner();
             if (!Runtime.CheckWitness(owner)) return false;
             if (owner == to) return false;
-            Storage.Put(Storage.CurrentContext, "owner", to);
+            Storage.Put(Storage.CurrentContext, Constants.Owner, to);
             return true;
         }
 
         public static byte[] Owner()
         {
-            return Storage.Get(Storage.CurrentContext, "owner");
+            return Storage.Get(Storage.CurrentContext, Constants.Owner);
         }
     }
 }
