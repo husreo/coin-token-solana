@@ -1,5 +1,4 @@
-﻿using System;
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Numerics;
@@ -23,24 +22,18 @@ namespace NEP5.Contract.Tests
             return engine;
         }
 
-        public static byte[] GetScriptArguments(string operation, params object[] argsArray)
+        public static byte[] GetScriptArguments(string operation, params object[] args)
         {
-            Debug.Assert(operation != null && argsArray != null && argsArray.Length <= 4);
-            var args = argsArray.ToList();
-            while (args.Count < 4)
-            {
-                args.Add(new byte[0]);
-            }
-
-            args.Reverse();
-
+            Debug.Assert(operation != null && args != null);
             using (var sb = new ScriptBuilder())
             {
-                foreach (var arg in args)
+                foreach (var arg in args.Reverse())
                 {
                     EmitPush(sb, arg);
                 }
 
+                sb.EmitPush(args.Length);
+                sb.EmitPush(OpCode.PACK);
                 sb.EmitPush(operation);
                 return sb.ToArray();
             }
