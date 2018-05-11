@@ -2,6 +2,7 @@
   "constants": {
     "D_NAME": "MyWish Token",
     "D_SYMBOL": "WISH",
-    "D_DECIMALS": 8
+    "D_DECIMALS": 8,
+	"D_OWNER": "ATrzHaicmhRj15C3Vv6e6gLfLqhSD2PtTr"
   }
 }

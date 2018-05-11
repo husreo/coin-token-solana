@@ -2,7 +2,6 @@
 {
     public static class Operations
     {
-        public const string Deploy = "deploy";
         public const string Owner = "owner";
         public const string Name = "name";
         public const string Symbol = "symbol";
@@ -19,6 +18,5 @@
         public const string Pause = "pause";
         public const string Paused = "paused";
         public const string Unpause = "unpause";
-        public const string TransferOwnership = "transferOwnership";
     }
 }

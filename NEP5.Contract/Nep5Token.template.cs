@@ -12,6 +12,7 @@ namespace NEP5.Contract
         public static string Name() => "D_NAME";
         public static string Symbol() => "D_SYMBOL";
         public static byte Decimals() => D_DECIMALS;
+        public static readonly byte[] Owner = "D_OWNER".ToScriptHash();
 
         public delegate void Action();
         public delegate void Action<in T1>(T1 arg1);
@@ -29,8 +30,7 @@ namespace NEP5.Contract
 
         public static Object Main(string operation, params object[] args)
         {
-            if (operation == Operations.Deploy) return Deploy((byte[]) args[0]);
-            if (operation == Operations.Owner) return Owner();
+            if (operation == Operations.Owner) return Owner;
             if (operation == Operations.Name) return Name();
             if (operation == Operations.Symbol) return Symbol();
             if (operation == Operations.Decimals) return Decimals();
@@ -46,15 +46,8 @@ namespace NEP5.Contract
             if (operation == Operations.Pause) return Pause();
             if (operation == Operations.Paused) return Paused();
             if (operation == Operations.Unpause) return Unpause();
-            if (operation == Operations.TransferOwnership) return TransferOwnership((byte[]) args[0]);
-            
-            return false;
-        }
 
-        public static bool Deploy(byte[] originator)
-        {
-            Storage.Put(Storage.CurrentContext, Constants.Owner, originator);
-            return true;
+            return false;
         }
 
         public static BigInteger BalanceOf(byte[] account)
@@ -136,8 +129,9 @@ namespace NEP5.Contract
 
         public static bool Mint(byte[] to, BigInteger value)
         {
-            if (!Runtime.CheckWitness(Owner())) return false;
+            if (!Runtime.CheckWitness(Owner)) return false;
             if (MintingFinished()) return false;
+            if (value <= 0) return false;
             Storage.Put(Storage.CurrentContext, to, BalanceOf(to) + value);
             Storage.Put(Storage.CurrentContext, Constants.TotalSupply, TotalSupply() + value);
             Minted(to, value);
@@ -147,7 +141,7 @@ namespace NEP5.Contract
 
         public static bool FinishMinting()
         {
-            if (!Runtime.CheckWitness(Owner())) return false;
+            if (!Runtime.CheckWitness(Owner)) return false;
             if (MintingFinished()) return false;
             Storage.Put(Storage.CurrentContext, Constants.MintingFinished, Constants.MintingFinished);
             MintFinished();
@@ -161,7 +155,7 @@ namespace NEP5.Contract
         
         public static bool Pause()
         {
-            if (!Runtime.CheckWitness(Owner())) return false;
+            if (!Runtime.CheckWitness(Owner)) return false;
             if (Paused()) return false;
             Storage.Put(Storage.CurrentContext, Constants.Paused, Constants.Paused);
             return true;
@@ -174,24 +168,10 @@ namespace NEP5.Contract
         
         public static bool Unpause()
         {
-            if (!Runtime.CheckWitness(Owner())) return false;
+            if (!Runtime.CheckWitness(Owner)) return false;
             if (!Paused()) return false;
             Storage.Delete(Storage.CurrentContext, Constants.Paused);
             return true;
-        }
-        
-        public static bool TransferOwnership(byte[] to)
-        {
-            byte[] owner = Owner();
-            if (!Runtime.CheckWitness(owner)) return false;
-            if (owner == to) return false;
-            Storage.Put(Storage.CurrentContext, Constants.Owner, to);
-            return true;
-        }
-
-        public static byte[] Owner()
-        {
-            return Storage.Get(Storage.CurrentContext, Constants.Owner);
         }
     }
 }
