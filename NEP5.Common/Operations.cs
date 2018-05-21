@@ -2,6 +2,7 @@
 {
     public static class Operations
     {
+        public const string Init = "init";
         public const string Owner = "owner";
         public const string Name = "name";
         public const string Symbol = "symbol";
