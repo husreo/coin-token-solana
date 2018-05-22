@@ -14,20 +14,20 @@ namespace NEP5.Contract
         public static byte Decimals() => D_DECIMALS;
         public static readonly byte[] Owner = "D_OWNER".ToScriptHash();
 
-        //#if D_PREMINT_COUNT > 0
-        //#ifdef D_PREMINT_ADDRESS_0
-        public static readonly byte[] PremintAddress0 = "D_PREMINT_ADDRESS_0".ToScriptHash();
-        public static readonly BigInteger PremintAmount0 = new BigInteger(D_PREMINT_AMOUNT_0);
-        //#endif
-        //#ifdef D_PREMINT_ADDRESS_1
-        public static readonly byte[] PremintAddress1 = "D_PREMINT_ADDRESS_1".ToScriptHash();
-        public static readonly BigInteger PremintAmount1 = new BigInteger(D_PREMINT_AMOUNT_1);
-        //#endif
-        //#ifdef D_PREMINT_ADDRESS_2
-        public static readonly byte[] PremintAddress2 = "D_PREMINT_ADDRESS_2".ToScriptHash();
-        public static readonly BigInteger PremintAmount2 = new BigInteger(D_PREMINT_AMOUNT_2);
-        //#endif
-        //#endif
+        #if D_PREMINT_COUNT > 0
+        #ifdef D_PREMINT_ADDRESS_0
+        private static readonly byte[] PremintAddress0 = "D_PREMINT_ADDRESS_0".ToScriptHash();
+        private static readonly BigInteger PremintAmount0 = new BigInteger(D_PREMINT_AMOUNT_0);
+        #endif
+        #ifdef D_PREMINT_ADDRESS_1
+        private static readonly byte[] PremintAddress1 = "D_PREMINT_ADDRESS_1".ToScriptHash();
+        private static readonly BigInteger PremintAmount1 = new BigInteger(D_PREMINT_AMOUNT_1);
+        #endif
+        #ifdef D_PREMINT_ADDRESS_2
+        private static readonly byte[] PremintAddress2 = "D_PREMINT_ADDRESS_2".ToScriptHash();
+        private static readonly BigInteger PremintAmount2 = new BigInteger(D_PREMINT_AMOUNT_2);
+        #endif
+        #endif
         
         public delegate void Action();
         public delegate void Action<in T1>(T1 arg1);
@@ -45,9 +45,9 @@ namespace NEP5.Contract
 
         public static Object Main(string operation, params object[] args)
         {
-            //#if D_PREMINT_COUNT > 0
+            #if D_PREMINT_COUNT > 0
             if (operation == Operations.Init) return Init();
-            //#endif
+            #endif
             if (operation == Operations.Owner) return Owner;
             if (operation == Operations.Name) return Name();
             if (operation == Operations.Symbol) return Symbol();
@@ -68,23 +68,23 @@ namespace NEP5.Contract
             return false;
         }
 
-        //#if D_PREMINT_COUNT > 0
+        #if D_PREMINT_COUNT > 0
         public static bool Init()
         {
             if (Storage.Get(Storage.CurrentContext, Constants.Inited).AsString() == Constants.Inited) return false;
-            //#ifdef D_PREMINT_ADDRESS_0
+            #ifdef D_PREMINT_ADDRESS_0
             _Mint(PremintAddress0, PremintAmount0);
-            //#endif
-            //#ifdef D_PREMINT_ADDRESS_1
+            #endif
+            #ifdef D_PREMINT_ADDRESS_1
             _Mint(PremintAddress1, PremintAmount1);
-            //#endif
-            //#ifdef D_PREMINT_ADDRESS_2
+            #endif
+            #ifdef D_PREMINT_ADDRESS_2
             _Mint(PremintAddress2, PremintAmount2);
-            //#endif
+            #endif
             Storage.Put(Storage.CurrentContext, Constants.Inited, Constants.Inited);
             return true;
         }
-        //#endif
+        #endif
         
         public static BigInteger BalanceOf(byte[] account)
         {
