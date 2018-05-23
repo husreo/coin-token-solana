@@ -29,7 +29,7 @@ namespace NEP5.Contract.Tests
                     {
                         case byte[] bytes:
                             var bytesArray = DataNode.CreateArray();
-                            bytes.ToList().ForEach(b => bytesArray.AddValue(b));
+                            bytes.Reverse().ToList().ForEach(b => bytesArray.AddValue(b));
                             parameters.AddNode(bytesArray);
                             break;
                         case int _:
