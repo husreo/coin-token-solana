@@ -9,12 +9,14 @@
     <None Include="Nep5TokenTest.template.cs" />
   </ItemGroup>
   <ItemGroup>
+    <PackageReference Include="LunarParser" Version="1.0.33" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="15.7.0" />
-    <PackageReference Include="Neo.Emulator" Version="1.0.0" />
+    <PackageReference Include="NeoLux" Version="0.6.5" />
     <PackageReference Include="NUnit" Version="3.10.1" />
     <PackageReference Include="NUnit3TestAdapter" Version="3.10.0" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\NEO-Emulator\NEO-Emulator.csproj" />
     <ProjectReference Include="..\NEP5.Common\NEP5.Common.csproj" />
   </ItemGroup>
 </Project>
