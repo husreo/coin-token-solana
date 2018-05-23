@@ -1,5 +1,6 @@
 ﻿using System.IO;
 using System.Linq;
+using System.Numerics;
 using Neo.VM;
 using LunarParser;
 using Neo.Emulation;
@@ -11,6 +12,7 @@ namespace NEP5.Contract.Tests
     {
         private const string Nep5ContractFilePath =
             "../../../../NEP5.Contract/bin/Release/netcoreapp2.0/publish/NEP5.Contract.avm";
+
         public static readonly byte[] Avm = File.ReadAllBytes(Nep5ContractFilePath);
 
         public static StackItem Execute(this Emulator emulator, string operation, params object[] args)
@@ -21,19 +23,41 @@ namespace NEP5.Contract.Tests
             if (args.Length > 0)
             {
                 var parameters = DataNode.CreateArray();
-                args.ToList().ForEach(a => parameters.AddValue(a));
-                inputs.AddNode(parameters); 
+                foreach (var a in args)
+                {
+                    switch (a)
+                    {
+                        case byte[] bytes:
+                            var bytesArray = DataNode.CreateArray();
+                            bytes.ToList().ForEach(b => bytesArray.AddValue(b));
+                            parameters.AddNode(bytesArray);
+                            break;
+                        case int _:
+                        case long _:
+                        case BigInteger _:
+                            var arr = DataNode.CreateArray();
+                            arr.AddValue(a);
+                            parameters.AddNode(arr);
+                            break;
+                        default:
+                            parameters.AddValue(a);
+                            break;
+                    }
+                }
+
+                inputs.AddNode(parameters);
             }
             else
             {
                 inputs.AddValue(null);
             }
 
-            emulator.Reset(inputs, new ABI());
+            var script = emulator.GenerateLoaderScriptFromInputs(inputs, new ABI());
+            emulator.Reset(script, null, null);
             emulator.Run();
 
             var result = emulator.GetOutput();
-            
+
             Assert.NotNull(result);
             return result;
         }

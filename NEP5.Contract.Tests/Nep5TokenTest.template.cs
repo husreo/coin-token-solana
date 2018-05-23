@@ -1,7 +1,9 @@
 ﻿using System;
+using System.Linq;
 using System.Numerics;
 using Neo.Emulation;
 using Neo.Emulation.API;
+using Neo.Lux.Utils;
 using NEP5.Common;
 using NUnit.Framework;
 
@@ -10,28 +12,23 @@ namespace NEP5.Contract.Tests
     [TestFixture]
     public class Nep5TokenTest
     {
-        private readonly string[] _addresses = {
-            "59E75D652B5D3827BF04C165BBE9EF95CCA4BF55",
-            "C85145B41CBDA9272E3141A396468F262569FF6B",
-            "849921A919A31F42543A8DC3643FCB9E025F20FF",
-        };
-     
+        private readonly byte[][] _scriptHashes = new[]
+        {
+            "D_OWNER",
+            "AYg1R35Ymx3Bazs7Xqo5kc7UkuF8uPQzeU",
+            "AX3CjPZzknv1WrLGQArtHKTMEg3yq3tbJU",
+        }.Select(a => a.GetScriptHashFromAddress()).ToArray();
+
         private static Blockchain _chain;
         private static Emulator _emulator;
-
-        private static Account _owner;
-        private static Account _executor1;
 
         [SetUp]
         public void Setup()
         {
             _chain = new Blockchain();
             _emulator = new Emulator(_chain);
-            _owner = _chain.DeployContract("owner", TestHelper.Avm);
-            _emulator.SetExecutingAccount(_owner);
-            
-            _chain.CreateAddress("executor1");
-            _executor1 = _chain.FindAddressByName("executor1");
+            var owner = _chain.DeployContract("owner", TestHelper.Avm);
+            _emulator.SetExecutingAccount(owner);
         }
 
         [Test]
@@ -41,7 +38,7 @@ namespace NEP5.Contract.Tests
             Console.WriteLine($"Result: {result}");
             Assert.IsFalse(result, "Invalid operation execution result should be false");
         }
-        
+
         [Test]
         public void T02_CheckName()
         {
@@ -49,7 +46,7 @@ namespace NEP5.Contract.Tests
             Console.WriteLine($"Token name: {name}");
             Assert.AreEqual("MyWish Token", name);
         }
-        
+
         [Test]
         public void T03_CheckSymbol()
         {
@@ -57,7 +54,7 @@ namespace NEP5.Contract.Tests
             Console.WriteLine($"Token symbol: {symbol}");
             Assert.AreEqual("WISH", symbol);
         }
-        
+
         [Test]
         public void T04_CheckDecimals()
         {
@@ -65,13 +62,13 @@ namespace NEP5.Contract.Tests
             Console.WriteLine($"Token decimals: {decimals}");
             Assert.AreEqual("8", decimals.ToString());
         }
-        
+
         [Test]
         public void T05_CheckOwner()
         {
-            var owner = _emulator.Execute(Operations.Owner).GetByteArray().ByteToHex();
-            Console.WriteLine($"Owner: {owner}");
-            Assert.AreEqual(_addresses[0], owner);
+            var owner = _emulator.Execute(Operations.Owner).GetByteArray();
+            Console.WriteLine($"Owner scriptHash: {owner}");
+            Assert.AreEqual(_scriptHashes[0], owner);
         }
 
         [Test]
@@ -101,6 +98,7 @@ namespace NEP5.Contract.Tests
         [Test]
         public void T09_CheckPauseByOwner()
         {
+            _emulator.checkWitnessMode = CheckWitnessMode.AlwaysTrue;
             var result = _emulator.Execute(Operations.Pause).GetBoolean();
             Console.WriteLine($"Pause result: {result}");
             Assert.IsTrue(result);
@@ -176,21 +174,23 @@ namespace NEP5.Contract.Tests
         public void T15_CheckMint()
         {
             _emulator.checkWitnessMode = CheckWitnessMode.AlwaysTrue;
-            var tokensToMint = new BigInteger(10);
-            var result = _emulator.Execute(Operations.Mint, _addresses[0], tokensToMint).GetBoolean();
+            const int tokensToMint = 10;
+            var result = _emulator
+                .Execute(Operations.Mint, _scriptHashes[0], tokensToMint)
+                .GetBoolean();
             Console.WriteLine($"Mint result: {result}");
             Assert.IsTrue(result);
         }
-        
+
         [Test]
         public void T16_CheckBalanceAfterMint()
         {
             _emulator.checkWitnessMode = CheckWitnessMode.AlwaysTrue;
             var tokensToMint = new BigInteger(10);
-            var result = _emulator.Execute(Operations.Mint, tokensToMint).GetBigInteger();
+            var result = _emulator.Execute(Operations.Mint, _scriptHashes[1], tokensToMint).GetBigInteger();
             Console.WriteLine($"Mint result: {result}");
 
-            var balance = _emulator.Execute(Operations.BalanceOf, _addresses[1]).GetBigInteger();
+            var balance = _emulator.Execute(Operations.BalanceOf, _scriptHashes[1]).GetBigInteger();
             Console.WriteLine($"Balance: {balance}");
             Assert.AreEqual(tokensToMint, balance);
 
@@ -242,7 +242,7 @@ namespace NEP5.Contract.Tests
             _emulator.checkWitnessMode = CheckWitnessMode.AlwaysTrue;
             var result = _emulator.Execute(Operations.FinishMinting).GetBoolean();
             Console.WriteLine($"Finish minting result: {result}");
-            var mintResult = _emulator.Execute(Operations.Mint, _addresses[1], new BigInteger(10)).GetBoolean();
+            var mintResult = _emulator.Execute(Operations.Mint, _scriptHashes[1], new BigInteger(10)).GetBoolean();
             Console.WriteLine($"Mint result: {mintResult}");
             Assert.IsFalse(mintResult);
         }
@@ -251,11 +251,12 @@ namespace NEP5.Contract.Tests
         public void T22_CheckTransfer()
         {
             _emulator.checkWitnessMode = CheckWitnessMode.AlwaysTrue;
-            var result = _emulator.Execute(Operations.Mint, _addresses[0], 10).GetBoolean();
+
+            var result = _emulator.Execute(Operations.Mint, _scriptHashes[0], 10).GetBoolean();
             Console.WriteLine($"Mint result: {result}");
-            
+
             var transferResult = _emulator
-                .Execute(Operations.Transfer, _addresses[0], _addresses[1], new BigInteger(5))
+                .Execute(Operations.Transfer, _scriptHashes[0], _scriptHashes[1], 5)
                 .GetBoolean();
             Console.WriteLine($"Transfer result: {transferResult}");
             Assert.IsTrue(transferResult);
@@ -264,23 +265,26 @@ namespace NEP5.Contract.Tests
         [Test]
         public void T23_CheckBalanceAfterTransfer()
         {
+            var tokensToMint = new BigInteger(10);
+            var tokensToTransfer = new BigInteger(7);
+
             _emulator.checkWitnessMode = CheckWitnessMode.AlwaysTrue;
-            var result = _emulator.Execute(Operations.Mint, _addresses[0], 10).GetBoolean();
+            var result = _emulator.Execute(Operations.Mint, _scriptHashes[0], tokensToMint).GetBoolean();
             Console.WriteLine($"Mint result: {result}");
-            
+
             var transferResult = _emulator
-                .Execute(Operations.Transfer, _addresses[0], _addresses[1], new BigInteger(5))
+                .Execute(Operations.Transfer, _scriptHashes[0], _scriptHashes[1], tokensToTransfer)
                 .GetBoolean();
             Console.WriteLine($"Transfer result: {transferResult}");
-            
-            var balanceFrom = _emulator.Execute(Operations.BalanceOf, _addresses[0]).GetBigInteger();
+
+            var balanceFrom = _emulator.Execute(Operations.BalanceOf, _scriptHashes[0]).GetBigInteger();
             Console.WriteLine($"Sender balance: {balanceFrom}");
-            
-            var balanceTo = _emulator.Execute(Operations.BalanceOf, _addresses[1]).GetBigInteger();
+
+            var balanceTo = _emulator.Execute(Operations.BalanceOf, _scriptHashes[1]).GetBigInteger();
             Console.WriteLine($"Recepient balance: {balanceTo}");
-            
-            Assert.AreEqual(new BigInteger(5), balanceFrom);
-            Assert.AreEqual(new BigInteger(5), balanceTo);
+
+            Assert.AreEqual(tokensToMint - tokensToTransfer, balanceFrom);
+            Assert.AreEqual(tokensToTransfer, balanceTo);
         }
 
         [Test]
@@ -288,7 +292,7 @@ namespace NEP5.Contract.Tests
         {
             _emulator.checkWitnessMode = CheckWitnessMode.AlwaysTrue;
             var result = _emulator
-                .Execute(Operations.Approve, _addresses[0], _addresses[1], new BigInteger(5))
+                .Execute(Operations.Approve, _scriptHashes[0], _scriptHashes[1], 5)
                 .GetBoolean();
             Console.WriteLine($"Approve result: {result}");
             Assert.IsTrue(result);
@@ -298,7 +302,7 @@ namespace NEP5.Contract.Tests
         public void T25_CheckApproveNotByOriginator()
         {
             var result = _emulator
-                .Execute(Operations.Approve, _addresses[0], _addresses[1], new BigInteger(5))
+                .Execute(Operations.Approve, _scriptHashes[0], _scriptHashes[1], 5)
                 .GetBoolean();
             Console.WriteLine($"Approve result: {result}");
             Assert.IsFalse(result);
@@ -307,72 +311,99 @@ namespace NEP5.Contract.Tests
         [Test]
         public void T26_CheckAllowanceAfterApprove()
         {
+            var tokensToApprove = new BigInteger(5);
+
             _emulator.checkWitnessMode = CheckWitnessMode.AlwaysTrue;
             var approveResult = _emulator
-                .Execute(Operations.Approve, _addresses[0], _addresses[1], new BigInteger(5))
+                .Execute(Operations.Approve, _scriptHashes[0], _scriptHashes[1], tokensToApprove)
                 .GetBoolean();
             Console.WriteLine($"Approve result: {approveResult}");
-            var allowance = _emulator.Execute(Operations.Allowance, _addresses[0], _addresses[1]).GetBigInteger();
+            var allowance = _emulator.Execute(Operations.Allowance, _scriptHashes[0], _scriptHashes[1]).GetBigInteger();
             Console.WriteLine($"Allowance: {allowance}");
-            Assert.AreEqual(new BigInteger(5), allowance);
+            Assert.AreEqual(tokensToApprove, allowance);
         }
-        
+
         [Test]
-        public void T27_CheckApproveAndTransferFrom()
+        public void T27_CheckMintAndApproveAndTransferFrom()
         {
+            var tokensToMint = new BigInteger(5);
+            var tokensToApprove = new BigInteger(5);
+            var tokensToTransfer = new BigInteger(3);
+
             _emulator.checkWitnessMode = CheckWitnessMode.AlwaysTrue;
+            var mintResult = _emulator.Execute(Operations.Mint, _scriptHashes[0], tokensToMint).GetBoolean();
+            Console.WriteLine($"Mint result: {mintResult}");
+
             var approveResult = _emulator
-                .Execute(Operations.Approve, _addresses[0], _addresses[1], new BigInteger(5))
+                .Execute(Operations.Approve, _scriptHashes[0], _scriptHashes[1], tokensToApprove)
                 .GetBoolean();
             Console.WriteLine($"Approve result: {approveResult}");
-            
+
             var transferResult = _emulator
-                .Execute(Operations.TransferFrom, _addresses[1], _addresses[0], _addresses[2], new BigInteger(3))
+                .Execute(Operations.TransferFrom, _scriptHashes[1], _scriptHashes[0], _scriptHashes[2],
+                    tokensToTransfer)
                 .GetBoolean();
             Console.WriteLine($"TransferFrom result: {transferResult}");
             Assert.IsTrue(transferResult);
         }
-        
+
         [Test]
         public void T28_CheckAllowedAfterTransferFrom()
         {
+            var tokensToMint = new BigInteger(5);
+            var tokensToApprove = new BigInteger(5);
+            var tokensToTransfer = new BigInteger(3);
+
             _emulator.checkWitnessMode = CheckWitnessMode.AlwaysTrue;
+            var mintResult = _emulator.Execute(Operations.Mint, _scriptHashes[0], tokensToMint).GetBoolean();
+            Console.WriteLine($"Mint result: {mintResult}");
+
             var approveResult = _emulator
-                .Execute(Operations.Approve, _addresses[0], _addresses[1], new BigInteger(5))
+                .Execute(Operations.Approve, _scriptHashes[0], _scriptHashes[1], tokensToApprove)
                 .GetBoolean();
             Console.WriteLine($"Approve result: {approveResult}");
-            
+
             var transferResult = _emulator
-                .Execute(Operations.TransferFrom, _addresses[1], _addresses[0], _addresses[2], new BigInteger(3))
+                .Execute(Operations.TransferFrom, _scriptHashes[1], _scriptHashes[0], _scriptHashes[2],
+                    tokensToTransfer)
                 .GetBoolean();
             Console.WriteLine($"TransferFrom result: {transferResult}");
 
-            var allowance = _emulator.Execute(Operations.Allowance, _addresses[0], _addresses[1]).GetBigInteger();
+            var allowance = _emulator.Execute(Operations.Allowance, _scriptHashes[0], _scriptHashes[1]).GetBigInteger();
             Console.WriteLine($"Allowance: {allowance}");
-            Assert.AreEqual(new BigInteger(2), allowance);
+            Assert.AreEqual(tokensToApprove - tokensToTransfer, allowance);
         }
-        
+
         [Test]
         public void T29_CheckBalancesAfterTransferFrom()
         {
+            var tokensToMint = new BigInteger(5);
+            var tokensToApprove = new BigInteger(4);
+            var tokensToTransfer = new BigInteger(3);
+
+            _emulator.checkWitnessMode = CheckWitnessMode.AlwaysTrue;
+            var mintResult = _emulator.Execute(Operations.Mint, _scriptHashes[0], tokensToMint).GetBoolean();
+            Console.WriteLine($"Mint result: {mintResult}");
+
             var approveResult = _emulator
-                .Execute(Operations.Approve, _addresses[0], _addresses[1], new BigInteger(5))
+                .Execute(Operations.Approve, _scriptHashes[0], _scriptHashes[1], tokensToApprove)
                 .GetBoolean();
             Console.WriteLine($"Approve result: {approveResult}");
-            
+
             var transferResult = _emulator
-                .Execute(Operations.TransferFrom, _addresses[1], _addresses[0], _addresses[2], new BigInteger(3))
+                .Execute(Operations.TransferFrom, _scriptHashes[1], _scriptHashes[0], _scriptHashes[2],
+                    tokensToTransfer)
                 .GetBoolean();
             Console.WriteLine($"TransferFrom result: {transferResult}");
-            
-            var balanceFrom = _emulator.Execute(Operations.BalanceOf, _addresses[0]).GetBigInteger();
+
+            var balanceFrom = _emulator.Execute(Operations.BalanceOf, _scriptHashes[0]).GetBigInteger();
             Console.WriteLine($"Sender balance: {balanceFrom}");
-            
-            var balanceTo = _emulator.Execute(Operations.BalanceOf, _addresses[2]).GetBigInteger();
+
+            var balanceTo = _emulator.Execute(Operations.BalanceOf, _scriptHashes[2]).GetBigInteger();
             Console.WriteLine($"Recepient balance: {balanceTo}");
-            
-            Assert.AreEqual(new BigInteger(2), balanceFrom);
-            Assert.AreEqual(new BigInteger(3), balanceTo);
+
+            Assert.AreEqual(tokensToMint - tokensToTransfer, balanceFrom);
+            Assert.AreEqual(tokensToTransfer, balanceTo);
         }
 
         [Test]
@@ -380,13 +411,13 @@ namespace NEP5.Contract.Tests
         {
             _emulator.checkWitnessMode = CheckWitnessMode.AlwaysTrue;
             var approveResult = _emulator
-                .Execute(Operations.Approve, _addresses[0], _addresses[1], new BigInteger(5))
+                .Execute(Operations.Approve, _scriptHashes[0], _scriptHashes[1], 5)
                 .GetBoolean();
             Console.WriteLine($"Approve result: {approveResult}");
-            
+
             _emulator.checkWitnessMode = CheckWitnessMode.AlwaysFalse;
             var transferResult = _emulator
-                .Execute(Operations.TransferFrom, _addresses[1], _addresses[0], _addresses[2], new BigInteger(5))
+                .Execute(Operations.TransferFrom, _scriptHashes[1], _scriptHashes[0], _scriptHashes[2], 5)
                 .GetBoolean();
             Console.WriteLine($"TransferFrom result: {transferResult}");
             Assert.IsFalse(transferResult);
