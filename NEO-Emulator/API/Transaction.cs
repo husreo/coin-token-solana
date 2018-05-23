@@ -21,10 +21,15 @@ namespace Neo.Emulation.API
         {
             this.block = block;
             block.AddTransaction(this);
+            this.hash = RandomHash();
+        }
 
+        public static byte[] RandomHash()
+        {
             var rnd = new Random();
-            this.hash = new byte[20];
-            rnd.NextBytes(this.hash);
+            var hash = new byte[20];
+            rnd.NextBytes(hash);
+            return hash;
         }
 
         byte[] IScriptContainer.GetMessage()
@@ -113,12 +118,28 @@ namespace Neo.Emulation.API
         [Syscall("Neo.Transaction.GetOutputs")]
         public static bool GetOutputs(ExecutionEngine engine)
         {
-            //Transaction
-            // returns TransactionOutput[]
+            var tx = GetTransactionFromStack(engine);
 
-            return GetReferences(engine);
+            if (tx == null)
+            {
+                return false;
+            }
+
+            var transactions = new List<StackItem>();
+
+            foreach (var entry in tx.outputs)
+            {
+                transactions.Add(new VM.Types.InteropInterface(entry));
+            }
+
+            var outputs = new VM.Types.Array(transactions.ToArray<StackItem>());
+
+            engine.EvaluationStack.Push(outputs);
+
+            return true;
         }
 
+        // this needs to fetch all tx that are inputs of the target tx
         [Syscall("Neo.Transaction.GetReferences", 0.2)]
         public static bool GetReferences(ExecutionEngine engine)
         {
