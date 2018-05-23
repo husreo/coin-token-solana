@@ -12,7 +12,8 @@ namespace NEP5.Contract
         public static string Name() => "D_NAME";
         public static string Symbol() => "D_SYMBOL";
         public static byte Decimals() => D_DECIMALS;
-
+        public static readonly byte[] InitialOwnerScriptHash = "D_OWNER".ToScriptHash();
+        
         #if D_PREMINT_COUNT > 0
         #ifdef D_PREMINT_ADDRESS_0
         private static readonly byte[] PremintScriptHash0 = "D_PREMINT_ADDRESS_0".ToScriptHash();
@@ -50,7 +51,7 @@ namespace NEP5.Contract
 
         public static Object Main(string operation, params object[] args)
         {
-            if (operation == Operations.Init) return Init((byte[]) args[0]);
+            if (operation == Operations.Init) return Init();
             if (operation == Operations.Owner) return Owner();
             if (operation == Operations.Name) return Name();
             if (operation == Operations.Symbol) return Symbol();
@@ -74,13 +75,13 @@ namespace NEP5.Contract
 
         public static byte[] Owner()
         {
-            return Storage.Get(Storage.CurrentContext, Constants.Owner);
+            return Storage.Get(Storage.CurrentContext, Constants.Owner) ?? InitialOwnerScriptHash;
         }
         
-        public static bool Init(byte[] ownerScriptHash)
+        public static bool Init()
         {
             if (Storage.Get(Storage.CurrentContext, Constants.Inited).AsString() == Constants.Inited) return false;
-            bool result = TransferOwnership(ownerScriptHash);
+            bool result = true;
             #if D_PREMINT_COUNT > 0
             #ifdef D_PREMINT_ADDRESS_0
             result = result && _Mint(PremintScriptHash0, PremintAmount0);
@@ -233,7 +234,7 @@ namespace NEP5.Contract
         
         public static bool TransferOwnership(byte[] target)
         {
-            if (!Runtime.CheckWitness(Owner()) && Owner() != new byte[0]) return false;
+            if (!Runtime.CheckWitness(Owner())) return false;
             if (target.Length != 20) return false;
             Storage.Put(Storage.CurrentContext, Constants.Owner, target);
             OwnershipTransferred(target);

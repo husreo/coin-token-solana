@@ -78,16 +78,16 @@ namespace NEP5.Contract.Tests
         public void T05_CheckOwnerBeforeInit()
         {
             var owner = _emulator.Execute(Operations.Owner).GetByteArray().ByteToHex();
-            Console.WriteLine($"Owner scriptHash: {owner}");
-            Assert.AreEqual(new byte[0].ByteToHex(), owner);
+            Console.WriteLine($"Owner: {owner}");
+            Assert.AreEqual(_scriptHashes[0].ByteToHex(), owner);
         }
-
+        
         [Test]
         public void T06_CheckOwnerAfterInit()
         {
             ExecuteInit();
             var owner = _emulator.Execute(Operations.Owner).GetByteArray().ByteToHex();
-            Console.WriteLine($"Owner scriptHash: {owner}");
+            Console.WriteLine($"Owner: {owner}");
             Assert.AreEqual(_scriptHashes[0].ByteToHex(), owner);
         }
 
@@ -217,10 +217,10 @@ namespace NEP5.Contract.Tests
             ExecuteInit();
             _emulator.checkWitnessMode = CheckWitnessMode.AlwaysTrue;
             var tokensToMint = new BigInteger(10);
-
+            
             var totalSupplyBeforeMint = _emulator.Execute(Operations.TotalSupply).GetBigInteger();
             Console.WriteLine($"Total supply before mint: {totalSupplyBeforeMint}");
-
+            
             var result = _emulator.Execute(Operations.Mint, _scriptHashes[1], tokensToMint).GetBigInteger();
             Console.WriteLine($"Mint result: {result}");
 
@@ -471,28 +471,35 @@ namespace NEP5.Contract.Tests
             Assert.IsFalse(transferResult);
         }
 
+        #if D_PREMINT_COUNT > 0
         [Test]
         public void T32_CheckPremint()
         {
             ExecuteInit();
             _emulator.checkWitnessMode = CheckWitnessMode.AlwaysTrue;
+            #ifdef D_PREMINT_ADDRESS_0
             var balance0 = _emulator
-                .Execute(Operations.BalanceOf, "AJzoeKrj7RHMwSrPQDPdv61ciVEYpmhkjk".GetScriptHashFromAddress())
+                .Execute(Operations.BalanceOf, "D_PREMINT_ADDRESS_0".GetScriptHashFromAddress())
                 .GetBigInteger();
             Console.WriteLine($"Premint balance 0: {balance0}");
-            Assert.AreEqual(new BigInteger(1000000), balance0);
-            var balance1 = _emulator.Execute(Operations.BalanceOf,
-                    "AK6B6VsUAnMZU8WFzLpF3YKsRuprpBdTy5".GetScriptHashFromAddress())
+            Assert.AreEqual(new BigInteger(D_PREMINT_AMOUNT_0), balance0);
+            #endif
+            #ifdef D_PREMINT_ADDRESS_1
+            var balance1 = _emulator.
+                Execute(Operations.BalanceOf, "D_PREMINT_ADDRESS_1".GetScriptHashFromAddress())
                 .GetBigInteger();
             Console.WriteLine($"Premint balance 1: {balance1}");
-            Assert.AreEqual(new BigInteger(2000000), balance1);
+            Assert.AreEqual(new BigInteger(D_PREMINT_AMOUNT_1), balance1);
+            #endif
+            #ifdef D_PREMINT_ADDRESS_2
             var balance2 = _emulator
-                .Execute(Operations.BalanceOf, "ANVKVRED2KHspqn1fXxqV65aaewD15qx45".GetScriptHashFromAddress())
+                .Execute(Operations.BalanceOf, "D_PREMINT_ADDRESS_2".GetScriptHashFromAddress())
                 .GetBigInteger();
             Console.WriteLine($"Premint balance 2: {balance2}");
-            Assert.AreEqual(new BigInteger(3000000), balance2);
+            Assert.AreEqual(new BigInteger(D_PREMINT_AMOUNT_2), balance2);
+            #endif
         }
-
+        #endif
 
         [Test]
         public void T33_CheckTransferOwnership()
@@ -504,7 +511,7 @@ namespace NEP5.Contract.Tests
                 .GetBoolean();
             Console.WriteLine($"TransferOwnership result: {transferOwnershipResult}");
             Assert.IsTrue(transferOwnershipResult);
-
+            
             var owner = _emulator.Execute(Operations.Owner).GetByteArray().ByteToHex();
             Console.WriteLine($"Owner: {owner}");
             Assert.AreEqual(_scriptHashes[1].ByteToHex(), owner);
