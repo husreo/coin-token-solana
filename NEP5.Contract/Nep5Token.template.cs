@@ -12,7 +12,6 @@ namespace NEP5.Contract
         public static string Name() => "D_NAME";
         public static string Symbol() => "D_SYMBOL";
         public static byte Decimals() => D_DECIMALS;
-        public static readonly byte[] Owner = "D_OWNER".ToScriptHash();
 
         #if D_PREMINT_COUNT > 0
         #ifdef D_PREMINT_ADDRESS_0
@@ -40,15 +39,19 @@ namespace NEP5.Contract
         [DisplayName("mint")] 
         public static event Action<byte[], BigInteger> Minted;
         
-        [DisplayName("mintFinish")]
+        [DisplayName("finishMint")]
         public static event Action MintFinished;
+        
+        [DisplayName("init")]
+        public static event Action Inited;
+ 
+        [DisplayName("transferOwnership")]
+        public static event Action<byte[]> OwnershipTransferred;
 
         public static Object Main(string operation, params object[] args)
         {
-            #if D_PREMINT_COUNT > 0
-            if (operation == Operations.Init) return Init();
-            #endif
-            if (operation == Operations.Owner) return Owner;
+            if (operation == Operations.Init) return Init((byte[]) args[0]);
+            if (operation == Operations.Owner) return Owner();
             if (operation == Operations.Name) return Name();
             if (operation == Operations.Symbol) return Symbol();
             if (operation == Operations.Decimals) return Decimals();
@@ -64,28 +67,35 @@ namespace NEP5.Contract
             if (operation == Operations.Pause) return Pause();
             if (operation == Operations.Paused) return Paused();
             if (operation == Operations.Unpause) return Unpause();
+            if (operation == Operations.TransferOwnership) return TransferOwnership((byte[]) args[0]);
 
             return false;
         }
 
-        #if D_PREMINT_COUNT > 0
-        public static bool Init()
+        public static byte[] Owner()
+        {
+            return Storage.Get(Storage.CurrentContext, Constants.Owner);
+        }
+        
+        public static bool Init(byte[] ownerScriptHash)
         {
             if (Storage.Get(Storage.CurrentContext, Constants.Inited).AsString() == Constants.Inited) return false;
-            bool result = true;
+            bool result = TransferOwnership(ownerScriptHash);
+            #if D_PREMINT_COUNT > 0
             #ifdef D_PREMINT_ADDRESS_0
-            result &= _Mint(PremintScriptHash0, PremintAmount0);
+            result = result && _Mint(PremintScriptHash0, PremintAmount0);
             #endif
             #ifdef D_PREMINT_ADDRESS_1
-            result &= _Mint(PremintScriptHash1, PremintAmount1);
+            result = result && _Mint(PremintScriptHash1, PremintAmount1);
             #endif
             #ifdef D_PREMINT_ADDRESS_2
-            result &= _Mint(PremintScriptHash2, PremintAmount2);
+            result = result && _Mint(PremintScriptHash2, PremintAmount2);
+            #endif
             #endif
             Storage.Put(Storage.CurrentContext, Constants.Inited, Constants.Inited);
+            Inited();
             return result;
         }
-        #endif
         
         public static BigInteger BalanceOf(byte[] account)
         {
@@ -170,7 +180,7 @@ namespace NEP5.Contract
 
         public static bool Mint(byte[] to, BigInteger value)
         {
-            if (!Runtime.CheckWitness(Owner)) return false;
+            if (!Runtime.CheckWitness(Owner())) return false;
             if (MintingFinished()) return false;
             return _Mint(to, value);
         }
@@ -188,7 +198,7 @@ namespace NEP5.Contract
 
         public static bool FinishMinting()
         {
-            if (!Runtime.CheckWitness(Owner)) return false;
+            if (!Runtime.CheckWitness(Owner())) return false;
             if (MintingFinished()) return false;
             Storage.Put(Storage.CurrentContext, Constants.MintingFinished, Constants.MintingFinished);
             MintFinished();
@@ -202,7 +212,7 @@ namespace NEP5.Contract
         
         public static bool Pause()
         {
-            if (!Runtime.CheckWitness(Owner)) return false;
+            if (!Runtime.CheckWitness(Owner())) return false;
             if (Paused()) return false;
             Storage.Put(Storage.CurrentContext, Constants.Paused, Constants.Paused);
             return true;
@@ -215,9 +225,18 @@ namespace NEP5.Contract
         
         public static bool Unpause()
         {
-            if (!Runtime.CheckWitness(Owner)) return false;
+            if (!Runtime.CheckWitness(Owner())) return false;
             if (!Paused()) return false;
             Storage.Delete(Storage.CurrentContext, Constants.Paused);
+            return true;
+        }
+        
+        public static bool TransferOwnership(byte[] target)
+        {
+            if (!Runtime.CheckWitness(Owner()) && Owner() != new byte[0]) return false;
+            if (target.Length != 20) return false;
+            Storage.Put(Storage.CurrentContext, Constants.Owner, target);
+            OwnershipTransferred(target);
             return true;
         }
     }

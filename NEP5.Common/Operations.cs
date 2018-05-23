@@ -19,5 +19,6 @@
         public const string Pause = "pause";
         public const string Paused = "paused";
         public const string Unpause = "unpause";
+        public const string TransferOwnership = "transferOwnership";
     }
 }

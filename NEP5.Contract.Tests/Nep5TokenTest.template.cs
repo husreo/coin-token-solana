@@ -15,8 +15,8 @@ namespace NEP5.Contract.Tests
         private readonly byte[][] _scriptHashes = new[]
         {
             "D_OWNER",
-            "AYg1R35Ymx3Bazs7Xqo5kc7UkuF8uPQzeU",
-            "AX3CjPZzknv1WrLGQArtHKTMEg3yq3tbJU",
+            "AZCcft1uYtmZXxzHPr5tY7L6M85zG7Dsrv",
+            "AWC97WM2rSfARUFdUiUY2DoWMm6o2Jehoq",
         }.Select(a => a.GetScriptHashFromAddress()).ToArray();
 
         private static Blockchain _chain;
@@ -31,9 +31,17 @@ namespace NEP5.Contract.Tests
             _emulator.SetExecutingAccount(owner);
         }
 
+        public void ExecuteInit()
+        {
+            var initResult = _emulator.Execute(Operations.Init, _scriptHashes[0]).GetBoolean();
+            Console.WriteLine($"Init result: {initResult}");
+            Assert.IsTrue(initResult);
+        }
+
         [Test]
         public void T01_CheckReturnFalseWhenInvalidOperation()
         {
+            ExecuteInit();
             var result = _emulator.Execute("invalidOperation").GetBoolean();
             Console.WriteLine($"Result: {result}");
             Assert.IsFalse(result, "Invalid operation execution result should be false");
@@ -42,6 +50,7 @@ namespace NEP5.Contract.Tests
         [Test]
         public void T02_CheckName()
         {
+            ExecuteInit();
             var name = _emulator.Execute(Operations.Name).GetString();
             Console.WriteLine($"Token name: {name}");
             Assert.AreEqual("D_NAME", name);
@@ -50,6 +59,7 @@ namespace NEP5.Contract.Tests
         [Test]
         public void T03_CheckSymbol()
         {
+            ExecuteInit();
             var symbol = _emulator.Execute(Operations.Symbol).GetString();
             Console.WriteLine($"Token symbol: {symbol}");
             Assert.AreEqual("D_SYMBOL", symbol);
@@ -58,21 +68,31 @@ namespace NEP5.Contract.Tests
         [Test]
         public void T04_CheckDecimals()
         {
+            ExecuteInit();
             var decimals = _emulator.Execute(Operations.Decimals).GetBigInteger();
             Console.WriteLine($"Token decimals: {decimals}");
             Assert.AreEqual("D_DECIMALS", decimals.ToString());
         }
 
         [Test]
-        public void T05_CheckOwner()
+        public void T05_CheckOwnerBeforeInit()
         {
-            var owner = _emulator.Execute(Operations.Owner).GetByteArray();
+            var owner = _emulator.Execute(Operations.Owner).GetByteArray().ByteToHex();
             Console.WriteLine($"Owner scriptHash: {owner}");
-            Assert.AreEqual(_scriptHashes[0], owner);
+            Assert.AreEqual(new byte[0].ByteToHex(), owner);
         }
 
         [Test]
-        public void T06_CheckTotalSupplyIsZeroBeforeDeploy()
+        public void T06_CheckOwnerAfterInit()
+        {
+            ExecuteInit();
+            var owner = _emulator.Execute(Operations.Owner).GetByteArray().ByteToHex();
+            Console.WriteLine($"Owner scriptHash: {owner}");
+            Assert.AreEqual(_scriptHashes[0].ByteToHex(), owner);
+        }
+
+        [Test]
+        public void T07_CheckTotalSupplyIsZeroBeforeInit()
         {
             var totalSupply = _emulator.Execute(Operations.TotalSupply).GetBigInteger();
             Console.WriteLine($"Total supply: {totalSupply}");
@@ -80,24 +100,27 @@ namespace NEP5.Contract.Tests
         }
 
         [Test]
-        public void T07_CheckNotPausedBeforePause()
+        public void T08_CheckNotPausedBeforePause()
         {
+            ExecuteInit();
             var result = _emulator.Execute(Operations.Paused).GetBoolean();
             Console.WriteLine($"Paused: {result}");
             Assert.IsFalse(result);
         }
 
         [Test]
-        public void T08_CheckPauseNotByOwner()
+        public void T09_CheckPauseNotByOwner()
         {
+            ExecuteInit();
             var result = _emulator.Execute(Operations.Pause).GetBoolean();
             Console.WriteLine($"Pause result: {result}");
             Assert.IsFalse(result);
         }
 
         [Test]
-        public void T09_CheckPauseByOwner()
+        public void T10_CheckPauseByOwner()
         {
+            ExecuteInit();
             _emulator.checkWitnessMode = CheckWitnessMode.AlwaysTrue;
             var result = _emulator.Execute(Operations.Pause).GetBoolean();
             Console.WriteLine($"Pause result: {result}");
@@ -105,8 +128,9 @@ namespace NEP5.Contract.Tests
         }
 
         [Test]
-        public void T10_CheckPausedAfterPause()
+        public void T11_CheckPausedAfterPause()
         {
+            ExecuteInit();
             _emulator.checkWitnessMode = CheckWitnessMode.AlwaysTrue;
             var result = _emulator.Execute(Operations.Pause).GetBoolean();
             Console.WriteLine($"Pause result: {result}");
@@ -116,8 +140,9 @@ namespace NEP5.Contract.Tests
         }
 
         [Test]
-        public void T11_CheckUnpauseAfterPause()
+        public void T12_CheckUnpauseAfterPause()
         {
+            ExecuteInit();
             _emulator.checkWitnessMode = CheckWitnessMode.AlwaysTrue;
             var result = _emulator.Execute(Operations.Pause).GetBoolean();
             Console.WriteLine($"Pause result: {result}");
@@ -128,8 +153,9 @@ namespace NEP5.Contract.Tests
         }
 
         [Test]
-        public void T12_CheckNotPausedAfterUnpause()
+        public void T13_CheckNotPausedAfterUnpause()
         {
+            ExecuteInit();
             _emulator.checkWitnessMode = CheckWitnessMode.AlwaysTrue;
             var result = _emulator.Execute(Operations.Pause).GetBoolean();
             Console.WriteLine($"Pause result: {result}");
@@ -143,8 +169,9 @@ namespace NEP5.Contract.Tests
         }
 
         [Test]
-        public void T13_CheckCannotUnpauseAfterUnpause()
+        public void T14_CheckCannotUnpauseAfterUnpause()
         {
+            ExecuteInit();
             _emulator.checkWitnessMode = CheckWitnessMode.AlwaysTrue;
             var result = _emulator.Execute(Operations.Pause).GetBoolean();
             Console.WriteLine($"Pause result: {result}");
@@ -158,8 +185,9 @@ namespace NEP5.Contract.Tests
         }
 
         [Test]
-        public void T14_CheckCannotUnpauseNotByOwner()
+        public void T15_CheckCannotUnpauseNotByOwner()
         {
+            ExecuteInit();
             _emulator.checkWitnessMode = CheckWitnessMode.AlwaysTrue;
             var result = _emulator.Execute(Operations.Pause).GetBoolean();
             Console.WriteLine($"Pause result: {result}");
@@ -171,8 +199,9 @@ namespace NEP5.Contract.Tests
         }
 
         [Test]
-        public void T15_CheckMint()
+        public void T16_CheckMint()
         {
+            ExecuteInit();
             _emulator.checkWitnessMode = CheckWitnessMode.AlwaysTrue;
             const int tokensToMint = 10;
             var result = _emulator
@@ -183,10 +212,15 @@ namespace NEP5.Contract.Tests
         }
 
         [Test]
-        public void T16_CheckBalanceAfterMint()
+        public void T17_CheckBalanceAfterMint()
         {
+            ExecuteInit();
             _emulator.checkWitnessMode = CheckWitnessMode.AlwaysTrue;
             var tokensToMint = new BigInteger(10);
+
+            var totalSupplyBeforeMint = _emulator.Execute(Operations.TotalSupply).GetBigInteger();
+            Console.WriteLine($"Total supply before mint: {totalSupplyBeforeMint}");
+
             var result = _emulator.Execute(Operations.Mint, _scriptHashes[1], tokensToMint).GetBigInteger();
             Console.WriteLine($"Mint result: {result}");
 
@@ -194,22 +228,24 @@ namespace NEP5.Contract.Tests
             Console.WriteLine($"Balance: {balance}");
             Assert.AreEqual(tokensToMint, balance);
 
-            var totalSupply = _emulator.Execute(Operations.TotalSupply).GetBigInteger();
-            Console.WriteLine($"Total supply: {totalSupply}");
-            Assert.AreEqual(tokensToMint, totalSupply);
+            var totalSupplyAfterMint = _emulator.Execute(Operations.TotalSupply).GetBigInteger();
+            Console.WriteLine($"Total supply after mint: {totalSupplyAfterMint}");
+            Assert.AreEqual(tokensToMint, totalSupplyAfterMint - totalSupplyBeforeMint);
         }
 
         [Test]
-        public void T17_CheckMintNotFinishedBeforeFinish()
+        public void T18_CheckMintNotFinishedBeforeFinish()
         {
+            ExecuteInit();
             var result = _emulator.Execute(Operations.MintingFinished).GetBoolean();
             Console.WriteLine($"Minting finished: {result}");
             Assert.IsFalse(result);
         }
 
         [Test]
-        public void T18_CheckFinishMintByOwner()
+        public void T19_CheckFinishMintByOwner()
         {
+            ExecuteInit();
             _emulator.checkWitnessMode = CheckWitnessMode.AlwaysTrue;
             var result = _emulator.Execute(Operations.FinishMinting).GetBoolean();
             Console.WriteLine($"Finish minting result: {result}");
@@ -217,8 +253,9 @@ namespace NEP5.Contract.Tests
         }
 
         [Test]
-        public void T19_CheckFinishMintingNotByOwner()
+        public void T20_CheckFinishMintingNotByOwner()
         {
+            ExecuteInit();
             _emulator.checkWitnessMode = CheckWitnessMode.AlwaysFalse;
             var result = _emulator.Execute(Operations.FinishMinting).GetBoolean();
             Console.WriteLine($"Finish minting result: {result}");
@@ -226,8 +263,9 @@ namespace NEP5.Contract.Tests
         }
 
         [Test]
-        public void T20_CheckMintingFinishedAfterFinish()
+        public void T21_CheckMintingFinishedAfterFinish()
         {
+            ExecuteInit();
             _emulator.checkWitnessMode = CheckWitnessMode.AlwaysTrue;
             var result = _emulator.Execute(Operations.FinishMinting).GetBoolean();
             Console.WriteLine($"Finish minting result: {result}");
@@ -237,8 +275,9 @@ namespace NEP5.Contract.Tests
         }
 
         [Test]
-        public void T21_CheckMintingForbiddenAfterFinish()
+        public void T22_CheckMintingForbiddenAfterFinish()
         {
+            ExecuteInit();
             _emulator.checkWitnessMode = CheckWitnessMode.AlwaysTrue;
             var result = _emulator.Execute(Operations.FinishMinting).GetBoolean();
             Console.WriteLine($"Finish minting result: {result}");
@@ -248,8 +287,9 @@ namespace NEP5.Contract.Tests
         }
 
         [Test]
-        public void T22_CheckTransfer()
+        public void T23_CheckTransfer()
         {
+            ExecuteInit();
             _emulator.checkWitnessMode = CheckWitnessMode.AlwaysTrue;
 
             var result = _emulator.Execute(Operations.Mint, _scriptHashes[0], 10).GetBoolean();
@@ -263,8 +303,9 @@ namespace NEP5.Contract.Tests
         }
 
         [Test]
-        public void T23_CheckBalanceAfterTransfer()
+        public void T24_CheckBalanceAfterTransfer()
         {
+            ExecuteInit();
             var tokensToMint = new BigInteger(10);
             var tokensToTransfer = new BigInteger(7);
 
@@ -288,8 +329,9 @@ namespace NEP5.Contract.Tests
         }
 
         [Test]
-        public void T24_CheckApprove()
+        public void T25_CheckApprove()
         {
+            ExecuteInit();
             _emulator.checkWitnessMode = CheckWitnessMode.AlwaysTrue;
             var result = _emulator
                 .Execute(Operations.Approve, _scriptHashes[0], _scriptHashes[1], 5)
@@ -299,8 +341,9 @@ namespace NEP5.Contract.Tests
         }
 
         [Test]
-        public void T25_CheckApproveNotByOriginator()
+        public void T26_CheckApproveNotByOriginator()
         {
+            ExecuteInit();
             var result = _emulator
                 .Execute(Operations.Approve, _scriptHashes[0], _scriptHashes[1], 5)
                 .GetBoolean();
@@ -309,8 +352,9 @@ namespace NEP5.Contract.Tests
         }
 
         [Test]
-        public void T26_CheckAllowanceAfterApprove()
+        public void T27_CheckAllowanceAfterApprove()
         {
+            ExecuteInit();
             var tokensToApprove = new BigInteger(5);
 
             _emulator.checkWitnessMode = CheckWitnessMode.AlwaysTrue;
@@ -324,8 +368,9 @@ namespace NEP5.Contract.Tests
         }
 
         [Test]
-        public void T27_CheckMintAndApproveAndTransferFrom()
+        public void T28_CheckMintAndApproveAndTransferFrom()
         {
+            ExecuteInit();
             var tokensToMint = new BigInteger(5);
             var tokensToApprove = new BigInteger(5);
             var tokensToTransfer = new BigInteger(3);
@@ -348,8 +393,9 @@ namespace NEP5.Contract.Tests
         }
 
         [Test]
-        public void T28_CheckAllowedAfterTransferFrom()
+        public void T29_CheckAllowedAfterTransferFrom()
         {
+            ExecuteInit();
             var tokensToMint = new BigInteger(5);
             var tokensToApprove = new BigInteger(5);
             var tokensToTransfer = new BigInteger(3);
@@ -375,8 +421,9 @@ namespace NEP5.Contract.Tests
         }
 
         [Test]
-        public void T29_CheckBalancesAfterTransferFrom()
+        public void T30_CheckBalancesAfterTransferFrom()
         {
+            ExecuteInit();
             var tokensToMint = new BigInteger(5);
             var tokensToApprove = new BigInteger(4);
             var tokensToTransfer = new BigInteger(3);
@@ -407,8 +454,9 @@ namespace NEP5.Contract.Tests
         }
 
         [Test]
-        public void T30_CheckApproveAndTransferFromNotByOriginator()
+        public void T31_CheckApproveAndTransferFromNotByOriginator()
         {
+            ExecuteInit();
             _emulator.checkWitnessMode = CheckWitnessMode.AlwaysTrue;
             var approveResult = _emulator
                 .Execute(Operations.Approve, _scriptHashes[0], _scriptHashes[1], 5)
@@ -423,37 +471,43 @@ namespace NEP5.Contract.Tests
             Assert.IsFalse(transferResult);
         }
 
-        #if D_PREMINT_COUNT > 0
         [Test]
-        public void T31_CheckPremint()
+        public void T32_CheckPremint()
         {
+            ExecuteInit();
             _emulator.checkWitnessMode = CheckWitnessMode.AlwaysTrue;
-            var initResult = _emulator.Execute(Operations.Init).GetBoolean();
-            Console.WriteLine($"Init result: {initResult}");
-            Assert.IsTrue(initResult);
-    
-            #ifdef D_PREMINT_ADDRESS_0
             var balance0 = _emulator
-                .Execute(Operations.BalanceOf, "D_PREMINT_ADDRESS_0".GetScriptHashFromAddress())
+                .Execute(Operations.BalanceOf, "AJzoeKrj7RHMwSrPQDPdv61ciVEYpmhkjk".GetScriptHashFromAddress())
                 .GetBigInteger();
             Console.WriteLine($"Premint balance 0: {balance0}");
-            Assert.AreEqual(new BigInteger(D_PREMINT_AMOUNT_0), balance0);
-            #endif
-            #ifdef D_PREMINT_ADDRESS_1
-            var balance1 = _emulator.
-                Execute(Operations.BalanceOf, "D_PREMINT_ADDRESS_1".GetScriptHashFromAddress())
+            Assert.AreEqual(new BigInteger(1000000), balance0);
+            var balance1 = _emulator.Execute(Operations.BalanceOf,
+                    "AK6B6VsUAnMZU8WFzLpF3YKsRuprpBdTy5".GetScriptHashFromAddress())
                 .GetBigInteger();
             Console.WriteLine($"Premint balance 1: {balance1}");
-            Assert.AreEqual(new BigInteger(D_PREMINT_AMOUNT_1), balance1);
-            #endif
-            #ifdef D_PREMINT_ADDRESS_2
+            Assert.AreEqual(new BigInteger(2000000), balance1);
             var balance2 = _emulator
-                .Execute(Operations.BalanceOf, "D_PREMINT_ADDRESS_2".GetScriptHashFromAddress())
+                .Execute(Operations.BalanceOf, "ANVKVRED2KHspqn1fXxqV65aaewD15qx45".GetScriptHashFromAddress())
                 .GetBigInteger();
             Console.WriteLine($"Premint balance 2: {balance2}");
-            Assert.AreEqual(new BigInteger(D_PREMINT_AMOUNT_2), balance2);
-            #endif
+            Assert.AreEqual(new BigInteger(3000000), balance2);
         }
-        #endif
+
+
+        [Test]
+        public void T33_CheckTransferOwnership()
+        {
+            ExecuteInit();
+            _emulator.checkWitnessMode = CheckWitnessMode.AlwaysTrue;
+            var transferOwnershipResult = _emulator
+                .Execute(Operations.TransferOwnership, _scriptHashes[1])
+                .GetBoolean();
+            Console.WriteLine($"TransferOwnership result: {transferOwnershipResult}");
+            Assert.IsTrue(transferOwnershipResult);
+
+            var owner = _emulator.Execute(Operations.Owner).GetByteArray().ByteToHex();
+            Console.WriteLine($"Owner: {owner}");
+            Assert.AreEqual(_scriptHashes[1].ByteToHex(), owner);
+        }
     }
 }
