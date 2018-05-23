@@ -16,15 +16,15 @@ namespace NEP5.Contract
 
         #if D_PREMINT_COUNT > 0
         #ifdef D_PREMINT_ADDRESS_0
-        private static readonly byte[] PremintAddress0 = "D_PREMINT_ADDRESS_0".ToScriptHash();
+        private static readonly byte[] PremintScriptHash0 = "D_PREMINT_ADDRESS_0".ToScriptHash();
         private static readonly BigInteger PremintAmount0 = new BigInteger(D_PREMINT_AMOUNT_0);
         #endif
         #ifdef D_PREMINT_ADDRESS_1
-        private static readonly byte[] PremintAddress1 = "D_PREMINT_ADDRESS_1".ToScriptHash();
+        private static readonly byte[] PremintScriptHash1 = "D_PREMINT_ADDRESS_1".ToScriptHash();
         private static readonly BigInteger PremintAmount1 = new BigInteger(D_PREMINT_AMOUNT_1);
         #endif
         #ifdef D_PREMINT_ADDRESS_2
-        private static readonly byte[] PremintAddress2 = "D_PREMINT_ADDRESS_2".ToScriptHash();
+        private static readonly byte[] PremintScriptHash2 = "D_PREMINT_ADDRESS_2".ToScriptHash();
         private static readonly BigInteger PremintAmount2 = new BigInteger(D_PREMINT_AMOUNT_2);
         #endif
         #endif
@@ -72,17 +72,18 @@ namespace NEP5.Contract
         public static bool Init()
         {
             if (Storage.Get(Storage.CurrentContext, Constants.Inited).AsString() == Constants.Inited) return false;
+            bool result = true;
             #ifdef D_PREMINT_ADDRESS_0
-            _Mint(PremintAddress0, PremintAmount0);
+            result &= _Mint(PremintScriptHash0, PremintAmount0);
             #endif
             #ifdef D_PREMINT_ADDRESS_1
-            _Mint(PremintAddress1, PremintAmount1);
+            result &= _Mint(PremintScriptHash1, PremintAmount1);
             #endif
             #ifdef D_PREMINT_ADDRESS_2
-            _Mint(PremintAddress2, PremintAmount2);
+            result &= _Mint(PremintScriptHash2, PremintAmount2);
             #endif
             Storage.Put(Storage.CurrentContext, Constants.Inited, Constants.Inited);
-            return true;
+            return result;
         }
         #endif
         

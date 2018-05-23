@@ -44,7 +44,7 @@ namespace NEP5.Contract.Tests
         {
             var name = _emulator.Execute(Operations.Name).GetString();
             Console.WriteLine($"Token name: {name}");
-            Assert.AreEqual("MyWish Token", name);
+            Assert.AreEqual("D_NAME", name);
         }
 
         [Test]
@@ -52,7 +52,7 @@ namespace NEP5.Contract.Tests
         {
             var symbol = _emulator.Execute(Operations.Symbol).GetString();
             Console.WriteLine($"Token symbol: {symbol}");
-            Assert.AreEqual("WISH", symbol);
+            Assert.AreEqual("D_SYMBOL", symbol);
         }
 
         [Test]
@@ -60,7 +60,7 @@ namespace NEP5.Contract.Tests
         {
             var decimals = _emulator.Execute(Operations.Decimals).GetBigInteger();
             Console.WriteLine($"Token decimals: {decimals}");
-            Assert.AreEqual("8", decimals.ToString());
+            Assert.AreEqual("D_DECIMALS", decimals.ToString());
         }
 
         [Test]
@@ -422,5 +422,38 @@ namespace NEP5.Contract.Tests
             Console.WriteLine($"TransferFrom result: {transferResult}");
             Assert.IsFalse(transferResult);
         }
+
+        #if D_PREMINT_COUNT > 0
+        [Test]
+        public void T31_CheckPremint()
+        {
+            _emulator.checkWitnessMode = CheckWitnessMode.AlwaysTrue;
+            var initResult = _emulator.Execute(Operations.Init).GetBoolean();
+            Console.WriteLine($"Init result: {initResult}");
+            Assert.IsTrue(initResult);
+    
+            #ifdef D_PREMINT_ADDRESS_0
+            var balance0 = _emulator
+                .Execute(Operations.BalanceOf, "D_PREMINT_ADDRESS_0".GetScriptHashFromAddress())
+                .GetBigInteger();
+            Console.WriteLine($"Premint balance 0: {balance0}");
+            Assert.AreEqual(new BigInteger(D_PREMINT_AMOUNT_0), balance0);
+            #endif
+            #ifdef D_PREMINT_ADDRESS_1
+            var balance1 = _emulator.
+                Execute(Operations.BalanceOf, "D_PREMINT_ADDRESS_1".GetScriptHashFromAddress())
+                .GetBigInteger();
+            Console.WriteLine($"Premint balance 1: {balance1}");
+            Assert.AreEqual(new BigInteger(D_PREMINT_AMOUNT_1), balance1);
+            #endif
+            #ifdef D_PREMINT_ADDRESS_2
+            var balance2 = _emulator
+                .Execute(Operations.BalanceOf, "D_PREMINT_ADDRESS_2".GetScriptHashFromAddress())
+                .GetBigInteger();
+            Console.WriteLine($"Premint balance 2: {balance2}");
+            Assert.AreEqual(new BigInteger(D_PREMINT_AMOUNT_2), balance2);
+            #endif
+        }
+        #endif
     }
 }
