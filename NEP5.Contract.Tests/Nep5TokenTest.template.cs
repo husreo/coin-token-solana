@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
 using Neo.Emulation;
@@ -472,112 +473,142 @@ namespace NEP5.Contract.Tests
         }
 
         #if D_PREMINT_COUNT > 0
+        private readonly string[] addresses = {
+            #ifdef D_PREMINT_ADDRESS_0
+            "D_PREMINT_ADDRESS_0",
+            #endif
+            #ifdef D_PREMINT_ADDRESS_1
+            "D_PREMINT_ADDRESS_1",
+            #endif
+            #ifdef D_PREMINT_ADDRESS_2
+            "D_PREMINT_ADDRESS_2",
+            #endif
+        };
+                                    
+        private readonly BigInteger[] amounts = {
+            #ifdef D_PREMINT_AMOUNT_0
+            new BigInteger(D_PREMINT_AMOUNT_0),
+            #endif
+            #ifdef D_PREMINT_AMOUNT_1
+            new BigInteger(D_PREMINT_AMOUNT_1),
+            #endif
+            #ifdef D_PREMINT_AMOUNT_2
+            new BigInteger(D_PREMINT_AMOUNT_2),
+            #endif
+        };
+                                    
+        private readonly long[] freezes = {
+            #ifdef D_PREMINT_FREEZE_0
+            D_PREMINT_FREEZE_0,
+            #endif
+            #ifdef D_PREMINT_FREEZE_1
+            D_PREMINT_FREEZE_1,
+            #endif
+            #ifdef D_PREMINT_FREEZE_2
+            D_PREMINT_FREEZE_2,
+            #endif
+        };
+
         [Test]
         public void T32_CheckPremintedBalances()
         {
             ExecuteInit();
-            BigInteger calculatedTotalSupply = 0;
             
-            #ifdef D_PREMINT_ADDRESS_0
-            var balance0 = _emulator
-                .Execute(Operations.BalanceOf, "D_PREMINT_ADDRESS_0".GetScriptHashFromAddress())
-                .GetBigInteger();
-            calculatedTotalSupply += balance0;
-            Console.WriteLine($"Premint balance 0: {balance0}");
-            Assert.AreEqual(new BigInteger(D_PREMINT_AMOUNT_0), balance0, "BalanceOf 0-th should be equals");
-            #endif
+            var addressesToAmounts = new Dictionary<string, BigInteger>();
+            for (var i = 0; i < addresses.Length; i++)
+            {
+                addressesToAmounts[addresses[i]] = addressesToAmounts.ContainsKey(addresses[i])
+                    ? addressesToAmounts[addresses[i]] + amounts[i]
+                    : amounts[i];
+            }
             
-            #ifdef D_PREMINT_ADDRESS_1
-            var balance1 = _emulator.
-                Execute(Operations.BalanceOf, "D_PREMINT_ADDRESS_1".GetScriptHashFromAddress())
-                .GetBigInteger();
-            calculatedTotalSupply += balance1;
-            Console.WriteLine($"Premint balance 1: {balance1}");
-            Assert.AreEqual(new BigInteger(D_PREMINT_AMOUNT_1), balance1, "BalanceOf 1-st should be equals");
-            #endif
+            var balances = addressesToAmounts.Keys
+                .Select(a => _emulator.Execute(Operations.BalanceOf, a.GetScriptHashFromAddress()).GetBigInteger())
+                .ToArray();
+                    
+            var addressesToBalances = new Dictionary<string, BigInteger>();
+            var j = 0;
+            foreach (var a in addressesToAmounts.Keys)
+            {
+                addressesToBalances[a] = balances[j++];
+            }
             
-            #ifdef D_PREMINT_ADDRESS_2
-            var balance2 = _emulator
-                .Execute(Operations.BalanceOf, "D_PREMINT_ADDRESS_2".GetScriptHashFromAddress())
-                .GetBigInteger();
-            calculatedTotalSupply += balance2;
-            Console.WriteLine($"Premint balance 2: {balance2}");
-            Assert.AreEqual(new BigInteger(D_PREMINT_AMOUNT_2), balance2, "BalanceOf 2-nd should be equals");
-            #endif
+            foreach (var key in addressesToAmounts.Keys)
+            {
+                Console.WriteLine($"Premint amout: {addressesToAmounts[key]}");
+                Console.WriteLine($"Premint balance: {addressesToBalances[key]}");
+                Assert.AreEqual(addressesToAmounts[key], addressesToBalances[key]);
+            }
             
-            BigInteger realTotalSupply = _emulator.Execute(Operations.TotalSupply).GetBigInteger();
+            var calculatedTotalSupply = BigInteger.Zero;
+            amounts.ToList().ForEach(a => calculatedTotalSupply += a);
+            var realTotalSupply = _emulator.Execute(Operations.TotalSupply).GetBigInteger();
             Console.WriteLine($"Total supply: {realTotalSupply}");
             Assert.AreEqual(calculatedTotalSupply, realTotalSupply, "TotalSupply should be equals");
         }
-        #endif
         
         [Test]
         public void T33_CheckFreezes() {
             ExecuteInit();
-    
-            #ifdef D_PREMINT_ADDRESS_0
-            var actualBalance0 = _emulator
-                .Execute(Operations.ActualBalanceOf, "D_PREMINT_ADDRESS_0".GetScriptHashFromAddress())
-                .GetBigInteger();
-            Console.WriteLine($"Actual balance 0: {actualBalance0}");
-            var freezingBalance0 = _emulator
-                .Execute(Operations.FreezingBalanceOf, "D_PREMINT_ADDRESS_0".GetScriptHashFromAddress())
-                .GetBigInteger();
-            Console.WriteLine($"Freezing balance 0: {freezingBalance0}");
-            if (new DateTime(D_PREMINT_FREEZE_0).CompareTo(DateTime.Now) != 1)
+            
+            var addressesToAmounts = new Dictionary<string, BigInteger>();
+            for (var i = 0; i < addresses.Length; i++)
             {
-                Assert.AreEqual(new BigInteger(D_PREMINT_AMOUNT_0), actualBalance0, "ActualBalanceOf 0-th should be equals");
-                Assert.AreEqual(BigInteger.Zero, freezingBalance0, "FreezingBalanceOf 0-th should be zero");
+                addressesToAmounts[addresses[i]] = addressesToAmounts.ContainsKey(addresses[i])
+                    ? addressesToAmounts[addresses[i]] + amounts[i]
+                    : amounts[i];
             }
-            else 
+            
+            var addressesToFreezings = new Dictionary<string, long>();
+            for (var i = 0; i < addresses.Length; i++)
             {
-                Assert.AreEqual(new BigInteger(D_PREMINT_AMOUNT_0), freezingBalance0, "FreezingBalanceOf 0-th should be equals");
-                Assert.AreEqual(BigInteger.Zero, actualBalance0, "ActualBalanceOf 0-th should be zero");
+                addressesToFreezings[addresses[i]] = addressesToFreezings.ContainsKey(addresses[i])
+                    ? addressesToFreezings[addresses[i]] + freezes[i]
+                    : freezes[i];
             }
-            #endif
-    
-            #ifdef D_PREMINT_ADDRESS_1
-            var actualBalance1 = _emulator
-                .Execute(Operations.ActualBalanceOf, "D_PREMINT_ADDRESS_1".GetScriptHashFromAddress())
-                .GetBigInteger();
-            Console.WriteLine($"Actual balance 1: {actualBalance1}");
-            var freezingBalance1 = _emulator
-                .Execute(Operations.FreezingBalanceOf, "D_PREMINT_ADDRESS_1".GetScriptHashFromAddress())
-                .GetBigInteger();
-            Console.WriteLine($"Freezing balance 1: {freezingBalance1}");
-            if (new DateTime(D_PREMINT_FREEZE_1).CompareTo(DateTime.Now) != 1)
+            
+            var actualBalances = addressesToAmounts.Keys
+                .Select(a => _emulator.Execute(Operations.ActualBalanceOf, a.GetScriptHashFromAddress()).GetBigInteger())
+                .ToArray();
+            
+            var addressesToActualBalances = new Dictionary<string, BigInteger>();
+            var j = 0;
+            foreach (var a in addressesToAmounts.Keys)
             {
-                Assert.AreEqual(new BigInteger(D_PREMINT_AMOUNT_1), actualBalance1, "ActualBalanceOf 1-st should be equals");
-                Assert.AreEqual(BigInteger.Zero, freezingBalance1, "FreezingBalanceOf 1-st should be zero");
+                addressesToActualBalances[a] = actualBalances[j++];
             }
-            else 
+            
+            var freezingBalances = addressesToAmounts.Keys
+                .Select(a => _emulator.Execute(Operations.FreezingBalanceOf, a.GetScriptHashFromAddress()).GetBigInteger())
+                .ToArray();
+            
+            var addressesToFreezingBalances = new Dictionary<string, BigInteger>();
+            var k = 0;
+            foreach (var a in addressesToAmounts.Keys)
             {
-                Assert.AreEqual(new BigInteger(D_PREMINT_AMOUNT_1), freezingBalance1, "FreezingBalanceOf 1-st should be equals");
-                Assert.AreEqual(BigInteger.Zero, actualBalance1, "ActualBalanceOf 1-st should be zero");
+                addressesToFreezingBalances[a] = freezingBalances[k++];
             }
-            #endif
-    
-            #ifdef D_PREMINT_ADDRESS_2
-            var actualBalance2 = _emulator
-                .Execute(Operations.ActualBalanceOf, "D_PREMINT_ADDRESS_2".GetScriptHashFromAddress())
-                .GetBigInteger();
-            Console.WriteLine($"Actual balance 2: {actualBalance2}");
-            var freezingBalance2 = _emulator
-                .Execute(Operations.FreezingBalanceOf, "D_PREMINT_ADDRESS_2".GetScriptHashFromAddress())
-                .GetBigInteger();
-            Console.WriteLine($"Freezing balance 2: {freezingBalance2}");
-            if (new DateTime(D_PREMINT_FREEZE_2).CompareTo(DateTime.Now) != 1)
+            
+            Console.WriteLine($"Now: {DateTime.Now.Ticks / 1000}");
+            foreach (var key in addressesToAmounts.Keys)
             {
-                Assert.AreEqual(new BigInteger(D_PREMINT_AMOUNT_2), actualBalance2, "ActualBalanceOf 2-nd should be equals");
-                Assert.AreEqual(BigInteger.Zero, freezingBalance2, "FreezingBalanceOf 2-nd should be zero");
+                Console.WriteLine($"Premint amout: {addressesToAmounts[key]}");
+                Console.WriteLine($"Premint freezing: {addressesToFreezings[key]}");
+                Console.WriteLine($"Premint actualBalance: {addressesToActualBalances[key]}");
+                Console.WriteLine($"Premint freezingBalance: {addressesToFreezingBalances[key]}");
+                if (new DateTime(addressesToFreezings[key] * 1000).CompareTo(DateTime.Now) != 1)
+                {
+                    Assert.AreEqual(addressesToAmounts[key], addressesToActualBalances[key]);
+                    Assert.AreEqual(BigInteger.Zero, addressesToFreezingBalances[key]);
+                }
+                else 
+                {
+                    Assert.AreEqual(addressesToAmounts[key], addressesToFreezingBalances[key]);
+                    Assert.AreEqual(BigInteger.Zero, addressesToActualBalances[key]);
+                }
             }
-            else 
-            {
-                Assert.AreEqual(new BigInteger(D_PREMINT_AMOUNT_2), freezingBalance2, "FreezingBalanceOf 2-nd should be equals");
-                Assert.AreEqual(BigInteger.Zero, actualBalance2, "ActualBalanceOf 2-nd should be zeo");
-            }
-            #endif
         }
+        #endif
             
         [Test]
         public void T34_CheckTransferOwnership()
