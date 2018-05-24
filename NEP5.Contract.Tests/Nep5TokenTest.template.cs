@@ -589,14 +589,16 @@ namespace NEP5.Contract.Tests
                 addressesToFreezingBalances[a] = freezingBalances[k++];
             }
             
-            Console.WriteLine($"Now: {DateTime.Now.Ticks / 1000}");
+            Console.WriteLine($"Now: {_emulator.timestamp}");
+            Console.WriteLine($"Now: {DateTime.Now.Millisecond}");
+            Console.WriteLine($"Now: {DateTime.Now.Second}");
             foreach (var key in addressesToAmounts.Keys)
             {
                 Console.WriteLine($"Premint amout: {addressesToAmounts[key]}");
                 Console.WriteLine($"Premint freezing: {addressesToFreezings[key]}");
                 Console.WriteLine($"Premint actualBalance: {addressesToActualBalances[key]}");
                 Console.WriteLine($"Premint freezingBalance: {addressesToFreezingBalances[key]}");
-                if (new DateTime(addressesToFreezings[key] * 1000).CompareTo(DateTime.Now) != 1)
+                if (new DateTime(1970, 1, 1).AddSeconds(addressesToFreezings[key]).CompareTo(DateTime.Now) != 1)
                 {
                     Assert.AreEqual(addressesToAmounts[key], addressesToActualBalances[key]);
                     Assert.AreEqual(BigInteger.Zero, addressesToFreezingBalances[key]);
