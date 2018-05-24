@@ -8,6 +8,9 @@
         public const string Symbol = "symbol";
         public const string Decimals = "decimals";
         public const string BalanceOf = "balanceOf";
+        public const string ActualBalanceOf = "actualBalanceOf";
+        public const string FreezingBalanceOf = "freezingBalanceOf";
+        public const string Release = "release";
         public const string Transfer = "transfer";
         public const string TotalSupply = "totalSupply";
         public const string Allowance = "allowance";

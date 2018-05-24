@@ -473,36 +473,114 @@ namespace NEP5.Contract.Tests
 
         #if D_PREMINT_COUNT > 0
         [Test]
-        public void T32_CheckPremint()
+        public void T32_CheckPremintedBalances()
         {
             ExecuteInit();
-            _emulator.checkWitnessMode = CheckWitnessMode.AlwaysTrue;
+            BigInteger calculatedTotalSupply = 0;
+            
             #ifdef D_PREMINT_ADDRESS_0
             var balance0 = _emulator
                 .Execute(Operations.BalanceOf, "D_PREMINT_ADDRESS_0".GetScriptHashFromAddress())
                 .GetBigInteger();
+            calculatedTotalSupply += balance0;
             Console.WriteLine($"Premint balance 0: {balance0}");
-            Assert.AreEqual(new BigInteger(D_PREMINT_AMOUNT_0), balance0);
+            Assert.AreEqual(new BigInteger(D_PREMINT_AMOUNT_0), balance0, "BalanceOf 0-th should be equals");
             #endif
+            
             #ifdef D_PREMINT_ADDRESS_1
             var balance1 = _emulator.
                 Execute(Operations.BalanceOf, "D_PREMINT_ADDRESS_1".GetScriptHashFromAddress())
                 .GetBigInteger();
+            calculatedTotalSupply += balance1;
             Console.WriteLine($"Premint balance 1: {balance1}");
-            Assert.AreEqual(new BigInteger(D_PREMINT_AMOUNT_1), balance1);
+            Assert.AreEqual(new BigInteger(D_PREMINT_AMOUNT_1), balance1, "BalanceOf 1-st should be equals");
             #endif
+            
             #ifdef D_PREMINT_ADDRESS_2
             var balance2 = _emulator
                 .Execute(Operations.BalanceOf, "D_PREMINT_ADDRESS_2".GetScriptHashFromAddress())
                 .GetBigInteger();
+            calculatedTotalSupply += balance2;
             Console.WriteLine($"Premint balance 2: {balance2}");
-            Assert.AreEqual(new BigInteger(D_PREMINT_AMOUNT_2), balance2);
+            Assert.AreEqual(new BigInteger(D_PREMINT_AMOUNT_2), balance2, "BalanceOf 2-nd should be equals");
             #endif
+            
+            BigInteger realTotalSupply = _emulator.Execute(Operations.TotalSupply).GetBigInteger();
+            Console.WriteLine($"Total supply: {realTotalSupply}");
+            Assert.AreEqual(calculatedTotalSupply, realTotalSupply, "TotalSupply should be equals");
         }
         #endif
-
+        
         [Test]
-        public void T33_CheckTransferOwnership()
+        public void T33_CheckFreezes() {
+            ExecuteInit();
+    
+            #ifdef D_PREMINT_ADDRESS_0
+            var actualBalance0 = _emulator
+                .Execute(Operations.ActualBalanceOf, "D_PREMINT_ADDRESS_0".GetScriptHashFromAddress())
+                .GetBigInteger();
+            Console.WriteLine($"Actual balance 0: {actualBalance0}");
+            var freezingBalance0 = _emulator
+                .Execute(Operations.FreezingBalanceOf, "D_PREMINT_ADDRESS_0".GetScriptHashFromAddress())
+                .GetBigInteger();
+            Console.WriteLine($"Freezing balance 0: {freezingBalance0}");
+            if (new DateTime(D_PREMINT_FREEZE_0).CompareTo(DateTime.Now) != 1)
+            {
+                Assert.AreEqual(new BigInteger(D_PREMINT_AMOUNT_0), actualBalance0, "ActualBalanceOf 0-th should be equals");
+                Assert.AreEqual(BigInteger.Zero, freezingBalance0, "FreezingBalanceOf 0-th should be zero");
+            }
+            else 
+            {
+                Assert.AreEqual(new BigInteger(D_PREMINT_AMOUNT_0), freezingBalance0, "FreezingBalanceOf 0-th should be equals");
+                Assert.AreEqual(BigInteger.Zero, actualBalance0, "ActualBalanceOf 0-th should be zero");
+            }
+            #endif
+    
+            #ifdef D_PREMINT_ADDRESS_1
+            var actualBalance1 = _emulator
+                .Execute(Operations.ActualBalanceOf, "D_PREMINT_ADDRESS_1".GetScriptHashFromAddress())
+                .GetBigInteger();
+            Console.WriteLine($"Actual balance 1: {actualBalance1}");
+            var freezingBalance1 = _emulator
+                .Execute(Operations.FreezingBalanceOf, "D_PREMINT_ADDRESS_1".GetScriptHashFromAddress())
+                .GetBigInteger();
+            Console.WriteLine($"Freezing balance 1: {freezingBalance1}");
+            if (new DateTime(D_PREMINT_FREEZE_1).CompareTo(DateTime.Now) != 1)
+            {
+                Assert.AreEqual(new BigInteger(D_PREMINT_AMOUNT_1), actualBalance1, "ActualBalanceOf 1-st should be equals");
+                Assert.AreEqual(BigInteger.Zero, freezingBalance1, "FreezingBalanceOf 1-st should be zero");
+            }
+            else 
+            {
+                Assert.AreEqual(new BigInteger(D_PREMINT_AMOUNT_1), freezingBalance1, "FreezingBalanceOf 1-st should be equals");
+                Assert.AreEqual(BigInteger.Zero, actualBalance1, "ActualBalanceOf 1-st should be zero");
+            }
+            #endif
+    
+            #ifdef D_PREMINT_ADDRESS_2
+            var actualBalance2 = _emulator
+                .Execute(Operations.ActualBalanceOf, "D_PREMINT_ADDRESS_2".GetScriptHashFromAddress())
+                .GetBigInteger();
+            Console.WriteLine($"Actual balance 2: {actualBalance2}");
+            var freezingBalance2 = _emulator
+                .Execute(Operations.FreezingBalanceOf, "D_PREMINT_ADDRESS_2".GetScriptHashFromAddress())
+                .GetBigInteger();
+            Console.WriteLine($"Freezing balance 2: {freezingBalance2}");
+            if (new DateTime(D_PREMINT_FREEZE_2).CompareTo(DateTime.Now) != 1)
+            {
+                Assert.AreEqual(new BigInteger(D_PREMINT_AMOUNT_2), actualBalance2, "ActualBalanceOf 2-nd should be equals");
+                Assert.AreEqual(BigInteger.Zero, freezingBalance2, "FreezingBalanceOf 2-nd should be zero");
+            }
+            else 
+            {
+                Assert.AreEqual(new BigInteger(D_PREMINT_AMOUNT_2), freezingBalance2, "FreezingBalanceOf 2-nd should be equals");
+                Assert.AreEqual(BigInteger.Zero, actualBalance2, "ActualBalanceOf 2-nd should be zeo");
+            }
+            #endif
+        }
+            
+        [Test]
+        public void T34_CheckTransferOwnership()
         {
             ExecuteInit();
             _emulator.checkWitnessMode = CheckWitnessMode.AlwaysTrue;
