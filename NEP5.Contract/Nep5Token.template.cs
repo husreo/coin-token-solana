@@ -52,11 +52,11 @@ namespace NEP5.Contract
         [DisplayName("transferOwnership")]
         public static event Action<byte[]> OwnershipTransferred;
         
-        [DisplayName("freeze")]
-        public static event Action<byte[], BigInteger, uint> Freezed;
-        
-        [DisplayName("release")]
-        public static event Action<byte[], BigInteger, uint> Released;
+//        [DisplayName("freeze")]
+//        public static event Action<byte[], BigInteger, uint> Freezed;
+//        
+//        [DisplayName("release")]
+//        public static event Action<byte[], BigInteger, uint> Released;
 
         public static Object Main(string operation, params object[] args)
         {
@@ -66,9 +66,9 @@ namespace NEP5.Contract
             if (operation == Operations.Symbol) return Symbol();
             if (operation == Operations.Decimals) return Decimals();
             if (operation == Operations.BalanceOf) return BalanceOf((byte[]) args[0]);
-            if (operation == Operations.ActualBalanceOf) return ActualBalanceOf((byte[]) args[0]);
-            if (operation == Operations.FreezingBalanceOf) return FreezingBalanceOf((byte[]) args[0]);
-            if (operation == Operations.Release) return Release((byte[]) args[0]);
+//            if (operation == Operations.ActualBalanceOf) return ActualBalanceOf((byte[]) args[0]);
+//            if (operation == Operations.FreezingBalanceOf) return FreezingBalanceOf((byte[]) args[0]);
+//            if (operation == Operations.Release) return Release((byte[]) args[0]);
             if (operation == Operations.Transfer) return Transfer((byte[]) args[0], (byte[]) args[1], (BigInteger) args[2]);
             if (operation == Operations.TotalSupply) return TotalSupply();
             if (operation == Operations.Allowance) return Allowance((byte[]) args[0], (byte[]) args[1]);
@@ -96,13 +96,16 @@ namespace NEP5.Contract
             bool result = true;
             #if D_PREMINT_COUNT > 0
             #ifdef D_PREMINT_ADDRESS_0
-            result = result && _MintOrFreeze(PremintScriptHash0, PremintAmount0, PremintFreeze0);
+            result = result && _Mint(PremintScriptHash0, PremintAmount0);
+//            result = result && _MintOrFreeze(PremintScriptHash0, PremintAmount0, PremintFreeze0);
             #endif
             #ifdef D_PREMINT_ADDRESS_1
-            result = result && _MintOrFreeze(PremintScriptHash1, PremintAmount1, PremintFreeze1);
+            result = result && _Mint(PremintScriptHash1, PremintAmount1);
+//            result = result && _MintOrFreeze(PremintScriptHash1, PremintAmount1, PremintFreeze1);
             #endif
             #ifdef D_PREMINT_ADDRESS_2
-            result = result && _MintOrFreeze(PremintScriptHash2, PremintAmount2, PremintFreeze2);
+            result = result && _MintOrFreeze(PremintScriptHash2, PremintAmount2);
+//            result = result && _MintOrFreeze(PremintScriptHash2, PremintAmount2, PremintFreeze2);
             #endif
             #endif
             Storage.Put(Storage.CurrentContext, Constants.Inited, Constants.Inited);
@@ -110,29 +113,29 @@ namespace NEP5.Contract
             return result;
         }
 
-        private static bool _MintOrFreeze(byte[] account, BigInteger amount, uint freezeUntil)
-        {
-            return freezeUntil <= Runtime.Time ? _Mint(account, amount) : _Freeze(account, amount, freezeUntil);
-        }
-
-        private static bool _Freeze(byte[] account, BigInteger amount, uint freezeUntil)
-        {
-            if (account.Length != 20) return false;
-            if (amount <= 0) return false;
-            Freezing f = new Freezing
-            {
-                AccountScriptHash = account,
-                Amount = amount,
-                FreezeUntil = freezeUntil
-            };
-            BigInteger freezesCount = Storage.Get(Storage.CurrentContext, "freezesCount").AsBigInteger();
-            Storage.Put(Storage.CurrentContext, "freeze".AsByteArray().Concat(freezesCount.AsByteArray()), f.Serialize());
-            Storage.Put(Storage.CurrentContext, "freezesCount", freezesCount + 1);
-            Storage.Put(Storage.CurrentContext, Constants.TotalSupply, TotalSupply() + amount);
-            Freezed(account, amount, freezeUntil);
-            Transferred(null, account, amount);
-            return true;
-        }
+//        private static bool _MintOrFreeze(byte[] account, BigInteger amount, uint freezeUntil)
+//        {
+//            return freezeUntil <= Runtime.Time ? _Mint(account, amount) : _Freeze(account, amount, freezeUntil);
+//        }
+//
+//        private static bool _Freeze(byte[] account, BigInteger amount, uint freezeUntil)
+//        {
+//            if (account.Length != 20) return false;
+//            if (amount <= 0) return false;
+//            Freezing f = new Freezing
+//            {
+//                AccountScriptHash = account,
+//                Amount = amount,
+//                FreezeUntil = freezeUntil
+//            };
+//            BigInteger freezesCount = Storage.Get(Storage.CurrentContext, "freezesCount").AsBigInteger();
+//            Storage.Put(Storage.CurrentContext, "freeze".AsByteArray().Concat(freezesCount.AsByteArray()), f.Serialize());
+//            Storage.Put(Storage.CurrentContext, "freezesCount", freezesCount + 1);
+//            Storage.Put(Storage.CurrentContext, Constants.TotalSupply, TotalSupply() + amount);
+//            Freezed(account, amount, freezeUntil);
+//            Transferred(null, account, amount);
+//            return true;
+//        }
         
         public static BigInteger BalanceOf(byte[] account)
         {
@@ -146,40 +149,40 @@ namespace NEP5.Contract
 
         public static BigInteger FreezingBalanceOf(byte[] account)
         {
-            BigInteger freezesCount = Storage.Get(Storage.CurrentContext, "freezesCount").AsBigInteger();
+//            BigInteger freezesCount = Storage.Get(Storage.CurrentContext, "freezesCount").AsBigInteger();
             BigInteger balance = 0;
-            for (BigInteger i = 0; i < freezesCount; i += 1)
-            {
-                Freezing f = (Freezing) Storage
-                    .Get(Storage.CurrentContext, "freeze".AsByteArray().Concat(i.AsByteArray()))
-                    .Deserialize();
+//            for (BigInteger i = 0; i < freezesCount; i += 1)
+//            {
+//                Freezing f = (Freezing) Storage
+//                    .Get(Storage.CurrentContext, "freeze".AsByteArray().Concat(i.AsByteArray()))
+//                    .Deserialize();
                
-                if (f.AccountScriptHash == account) {
-                    balance += f.Amount;
-                }
-            }
+//                if (f.AccountScriptHash == account) {
+//                    balance += f.Amount;
+//                }
+//            }
             return balance;
         }
 
-        public static bool Release(byte[] account)
-        {
-            if (!Runtime.CheckWitness(account)) return false;
-            BigInteger freezesCount = Storage.Get(Storage.CurrentContext, "freezesCount").AsBigInteger();
-            
-            for (BigInteger i = 0; i < freezesCount; i += 1)
-            {
-                byte[] key = "freeze".AsByteArray().Concat(i.AsByteArray());
-                Freezing f = (Freezing) Storage.Get(Storage.CurrentContext, key).Deserialize();
-               
-                if (f.AccountScriptHash == account && f.FreezeUntil <= Runtime.Time) {
-                    Storage.Put(Storage.CurrentContext, account, ActualBalanceOf(account) + f.Amount);
-                    Storage.Delete(Storage.CurrentContext, key);
-                    Released(f.AccountScriptHash, f.Amount, f.FreezeUntil);
-                }
-            }
-
-            return true;
-        }
+//        public static bool Release(byte[] account)
+//        {
+//            if (!Runtime.CheckWitness(account)) return false;
+//            BigInteger freezesCount = Storage.Get(Storage.CurrentContext, "freezesCount").AsBigInteger();
+//            
+//            for (BigInteger i = 0; i < freezesCount; i += 1)
+//            {
+//                byte[] key = "freeze".AsByteArray().Concat(i.AsByteArray());
+//                Freezing f = (Freezing) Storage.Get(Storage.CurrentContext, key).Deserialize();
+//               
+//                if (f.AccountScriptHash == account && f.FreezeUntil <= Runtime.Time) {
+//                    Storage.Put(Storage.CurrentContext, account, ActualBalanceOf(account) + f.Amount);
+//                    Storage.Delete(Storage.CurrentContext, key);
+//                    Released(f.AccountScriptHash, f.Amount, f.FreezeUntil);
+//                }
+//            }
+//
+//            return true;
+//        }
 
         public static bool Transfer(byte[] from, byte[] to, BigInteger value)
         {
