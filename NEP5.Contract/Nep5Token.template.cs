@@ -18,17 +18,17 @@ namespace NEP5.Contract
         #ifdef D_PREMINT_ADDRESS_0
         private static readonly byte[] PremintScriptHash0 = "D_PREMINT_ADDRESS_0".ToScriptHash();
         private static readonly BigInteger PremintAmount0 = new BigInteger(D_PREMINT_AMOUNT_0);
-        private static readonly uint PremintFreeze0 = D_PREMINT_FREEZE_0;
+//        private static readonly uint PremintFreeze0 = D_PREMINT_FREEZE_0;
         #endif
         #ifdef D_PREMINT_ADDRESS_1
         private static readonly byte[] PremintScriptHash1 = "D_PREMINT_ADDRESS_1".ToScriptHash();
         private static readonly BigInteger PremintAmount1 = new BigInteger(D_PREMINT_AMOUNT_1);
-        private static readonly uint PremintFreeze1 = D_PREMINT_FREEZE_1;
+//        private static readonly uint PremintFreeze1 = D_PREMINT_FREEZE_1;
         #endif
         #ifdef D_PREMINT_ADDRESS_2
         private static readonly byte[] PremintScriptHash2 = "D_PREMINT_ADDRESS_2".ToScriptHash();
         private static readonly BigInteger PremintAmount2 = new BigInteger(D_PREMINT_AMOUNT_2);
-        private static readonly uint PremintFreeze2 = D_PREMINT_FREEZE_2;
+//        private static readonly uint PremintFreeze2 = D_PREMINT_FREEZE_2;
         #endif
         #endif
         
@@ -104,7 +104,7 @@ namespace NEP5.Contract
 //            result = result && _MintOrFreeze(PremintScriptHash1, PremintAmount1, PremintFreeze1);
             #endif
             #ifdef D_PREMINT_ADDRESS_2
-            result = result && _MintOrFreeze(PremintScriptHash2, PremintAmount2);
+            result = result && _Mint(PremintScriptHash2, PremintAmount2);
 //            result = result && _MintOrFreeze(PremintScriptHash2, PremintAmount2, PremintFreeze2);
             #endif
             #endif
