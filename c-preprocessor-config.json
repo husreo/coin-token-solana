@@ -4,6 +4,7 @@
     "D_SYMBOL": "WISH",
     "D_DECIMALS": 8,
     "D_OWNER": "APyEx5f4Zm4oCHwFWiSTaph1fPBxZacYVR",
+    "D_CONTINUE_MINTING": true,
     
     "D_PREMINT_COUNT": 3,
     "D_PREMINT_ADDRESS_0": "AJzoeKrj7RHMwSrPQDPdv61ciVEYpmhkjk",

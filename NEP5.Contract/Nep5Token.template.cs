@@ -108,6 +108,11 @@ namespace NEP5.Contract
 //            result = result && _MintOrFreeze(PremintScriptHash2, PremintAmount2, PremintFreeze2);
             #endif
             #endif
+            
+            #if defined(D_CONTINUE_MINTING) && !D_CONTINUE_MINTING
+            result = result && _FinishMinting();
+            #endif
+            
             Storage.Put(Storage.CurrentContext, Constants.Inited, Constants.Inited);
             Inited();
             return result;
@@ -281,6 +286,11 @@ namespace NEP5.Contract
         public static bool FinishMinting()
         {
             if (!Runtime.CheckWitness(Owner())) return false;
+            return _FinishMinting();
+        }
+
+        private static bool _FinishMinting()
+        {   
             if (MintingFinished()) return false;
             Storage.Put(Storage.CurrentContext, Constants.MintingFinished, Constants.MintingFinished);
             MintFinished();
