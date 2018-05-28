@@ -209,9 +209,15 @@ namespace NEP5.Contract.Tests
                 .Execute(Operations.Mint, _scriptHashes[0], tokensToMint)
                 .GetBoolean();
             Console.WriteLine($"Mint result: {result}");
+            
+            #if defined(D_CONTINUE_MINTING) && D_CONTINUE_MINTING
             Assert.IsTrue(result);
+            #else
+            Assert.IsFalse(result);
+            #endif
         }
 
+        #if defined(D_CONTINUE_MINTING) && D_CONTINUE_MINTING
         [Test]
         public void T17_CheckBalanceAfterMint()
         {
@@ -233,7 +239,9 @@ namespace NEP5.Contract.Tests
             Console.WriteLine($"Total supply after mint: {totalSupplyAfterMint}");
             Assert.AreEqual(tokensToMint, totalSupplyAfterMint - totalSupplyBeforeMint);
         }
+        #endif
 
+        #if defined(D_CONTINUE_MINTING) && D_CONTINUE_MINTING
         [Test]
         public void T18_CheckMintNotFinishedBeforeFinish()
         {
@@ -252,6 +260,7 @@ namespace NEP5.Contract.Tests
             Console.WriteLine($"Finish minting result: {result}");
             Assert.IsTrue(result);
         }
+        #endif
 
         [Test]
         public void T20_CheckFinishMintingNotByOwner()
@@ -286,7 +295,8 @@ namespace NEP5.Contract.Tests
             Console.WriteLine($"Mint result: {mintResult}");
             Assert.IsFalse(mintResult);
         }
-
+        
+        #if defined(D_CONTINUE_MINTING) && D_CONTINUE_MINTING
         [Test]
         public void T23_CheckTransfer()
         {
@@ -302,6 +312,7 @@ namespace NEP5.Contract.Tests
             Console.WriteLine($"Transfer result: {transferResult}");
             Assert.IsTrue(transferResult);
         }
+        #endif
 
         [Test]
         public void T24_CheckBalanceAfterTransfer()
@@ -367,6 +378,7 @@ namespace NEP5.Contract.Tests
             Assert.AreEqual(tokensToApprove, allowance);
         }
 
+        #if defined(D_CONTINUE_MINTING) && D_CONTINUE_MINTING
         [Test]
         public void T28_CheckMintAndApproveAndTransferFrom()
         {
@@ -391,7 +403,9 @@ namespace NEP5.Contract.Tests
             Console.WriteLine($"TransferFrom result: {transferResult}");
             Assert.IsTrue(transferResult);
         }
+        #endif
 
+        #if defined(D_CONTINUE_MINTING) && D_CONTINUE_MINTING
         [Test]
         public void T29_CheckAllowedAfterTransferFrom()
         {
@@ -419,6 +433,7 @@ namespace NEP5.Contract.Tests
             Console.WriteLine($"Allowance: {allowance}");
             Assert.AreEqual(tokensToApprove - tokensToTransfer, allowance);
         }
+        #endif
 
         [Test]
         public void T30_CheckBalancesAfterTransferFrom()
