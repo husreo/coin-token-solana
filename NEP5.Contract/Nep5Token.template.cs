@@ -29,6 +29,8 @@ namespace NEP5.Contract
         #endif
         #endif
         
+        public static uint CreationDateTime() => "__DATE__ __TIME__";
+        
         public delegate void Action();
         public delegate void Action<in T1>(T1 arg1);
         public delegate void Action<in T1, in T2>(T1 arg1, T2 arg2);
