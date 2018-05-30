@@ -29,25 +29,20 @@ namespace NEP5.Contract
         #endif
         #endif
         
-        public delegate void Action();
-        public delegate void Action<in T1>(T1 arg1);
-        public delegate void Action<in T1, in T2>(T1 arg1, T2 arg2);
-        public delegate void Action<in T1, in T2, in T3>(T1 arg1, T2 arg2, T3 arg3);
-        
         [DisplayName("transfer")]
-        public static event Action<byte[], byte[], BigInteger> Transferred;
+        public static event Types.Action<byte[], byte[], BigInteger> Transferred;
         
         [DisplayName("mint")]
-        public static event Action<byte[], BigInteger> Minted;
+        public static event Types.Action<byte[], BigInteger> Minted;
         
         [DisplayName("finishMint")]
-        public static event Action MintFinished;
+        public static event Types.Action MintFinished;
         
         [DisplayName("init")]
-        public static event Action Inited;
+        public static event Types.Action Inited;
  
         [DisplayName("transferOwnership")]
-        public static event Action<byte[]> OwnershipTransferred;
+        public static event Types.Action<byte[]> OwnershipTransferred;
 
         public static Object Main(string operation, params object[] args)
         {
