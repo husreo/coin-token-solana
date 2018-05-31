@@ -1,6 +1,5 @@
 ﻿using Neo.SmartContract.Framework;
 using Neo.SmartContract.Framework.Services.Neo;
-using System;
 using System.ComponentModel;
 using System.Numerics;
 using Common;
@@ -44,26 +43,76 @@ namespace NEP5.Contract
         [DisplayName("transferOwnership")]
         public static event Types.Action<byte[]> OwnershipTransferred;
 
-        public static Object Main(string operation, params object[] args)
+        public static object Main(string operation, params object[] args)
         {
             if (operation == Operations.Init) return Init();
             if (operation == Operations.Owner) return Owner();
             if (operation == Operations.Name) return Name();
             if (operation == Operations.Symbol) return Symbol();
             if (operation == Operations.Decimals) return Decimals();
-            if (operation == Operations.BalanceOf) return BalanceOf((byte[]) args[0]);
-            if (operation == Operations.Transfer) return Transfer((byte[]) args[0], (byte[]) args[1], (BigInteger) args[2]);
+            if (operation == Operations.BalanceOf)
+            {
+                if (args.Length != 1) return false;
+                var account = (byte[]) args[0];
+                return BalanceOf(account);
+            }
+
+            if (operation == Operations.Transfer)
+            {
+                if (args.Length != 3) return false;
+                var from = (byte[]) args[0];
+                var to = (byte[]) args[1];
+                var value = (BigInteger) args[2];
+                return Transfer(from, to, value);
+            }
+
             if (operation == Operations.TotalSupply) return TotalSupply();
-            if (operation == Operations.Allowance) return Allowance((byte[]) args[0], (byte[]) args[1]);
-            if (operation == Operations.Approve) return Approve((byte[]) args[0], (byte[]) args[1], (BigInteger) args[2]);
-            if (operation == Operations.TransferFrom) return TransferFrom((byte[]) args[0], (byte[]) args[1], (byte[]) args[2], (BigInteger) args[3]);
-            if (operation == Operations.Mint) return Mint((byte[]) args[0], (BigInteger) args[1]);
+            if (operation == Operations.Allowance)
+            {
+                if (args.Length != 2) return false;
+                var from = (byte[]) args[0];
+                var to = (byte[]) args[1];
+                return Allowance(from, to);
+            }
+
+            if (operation == Operations.Approve)
+            {
+                if (args.Length != 3) return false;
+                var originator = (byte[]) args[0];
+                var to = (byte[]) args[1];
+                var value = (BigInteger) args[2];
+                return Approve(originator, to, value);
+            }
+
+            if (operation == Operations.TransferFrom)
+            {
+                if (args.Length != 4) return false;
+                var originator = (byte[]) args[0];
+                var from = (byte[]) args[1];
+                var to = (byte[]) args[2];
+                var value = (BigInteger) args[3];
+                return TransferFrom(originator, from, to, value);
+            }
+
+            if (operation == Operations.Mint)
+            {
+                if (args.Length != 2) return false;
+                var to = (byte[]) args[0];
+                var value = (BigInteger) args[1];
+                return Mint(to, value);
+            }
+
             if (operation == Operations.FinishMinting) return FinishMinting();
             if (operation == Operations.MintingFinished) return MintingFinished();
             if (operation == Operations.Pause) return Pause();
             if (operation == Operations.Paused) return Paused();
             if (operation == Operations.Unpause) return Unpause();
-            if (operation == Operations.TransferOwnership) return TransferOwnership((byte[]) args[0]);
+            if (operation == Operations.TransferOwnership)
+            {
+                if (args.Length != 1) return false;
+                var target = (byte[]) args[0];
+                return TransferOwnership(target);
+            }
 
             return false;
         }
