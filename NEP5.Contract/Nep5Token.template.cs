@@ -11,7 +11,7 @@ namespace NEP5.Contract
         public static string Name() => "D_NAME";
         public static string Symbol() => "D_SYMBOL";
         public static byte Decimals() => D_DECIMALS;
-        public static readonly byte[] InitialOwnerScriptHash = "D_OWNER".ToScriptHash();
+        private static readonly byte[] InitialOwnerScriptHash = "D_OWNER".ToScriptHash();
         
         #if D_PREMINT_COUNT > 0
         #ifdef D_PREMINT_ADDRESS_0
