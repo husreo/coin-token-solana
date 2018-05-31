@@ -1,4 +1,4 @@
-﻿namespace NEP5.Common
+﻿namespace Common
 {
     public static class Operations
     {
