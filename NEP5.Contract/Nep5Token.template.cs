@@ -1,9 +1,9 @@
 ﻿using Neo.SmartContract.Framework;
 using Neo.SmartContract.Framework.Services.Neo;
-using NEP5.Common;
 using System;
 using System.ComponentModel;
 using System.Numerics;
+using Common;
 
 namespace NEP5.Contract
 {

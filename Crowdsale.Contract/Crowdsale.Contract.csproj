@@ -6,10 +6,6 @@
     <PackageReference Include="Neo.SmartContract.Framework" Version="2.7.3" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\NEP5.Common\NEP5.Common.csproj" />
-    <ProjectReference Include="..\NEP5.Contract\NEP5.Contract.csproj">
-      <Project>{C3C9AC0B-E747-46C1-B36D-9D3B3AFC8D39}</Project>
-      <Name>NEP5.Contract</Name>
-    </ProjectReference>
+    <ProjectReference Include="..\Common\Common.csproj" />
   </ItemGroup>
 </Project>

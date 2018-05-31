@@ -260,7 +260,7 @@ paket-files/
 __pycache__/
 *.pyc
 
-Nep5Token.cs
-Nep5TokenTest.cs
-Nep5Token.cs
-Nep5Token.cs
+NEP5.Contract/Nep5Token.cs
+NEP5.Tests/Nep5TokenTest.cs
+Crowdsale.Contract/Crowdsale.cs
+Crowdsale.Tests/CrowdsaleTest.cs

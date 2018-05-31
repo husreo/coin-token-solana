@@ -3,10 +3,10 @@ set -e
 
 echo "Cleaning..."
 rm -rf \
+    Common/bin \
+    Common/obj \
     NEP5.Contract/bin \
-    NEP5.Common/bin \
     NEP5.Contract/obj \
-    NEP5.Common/obj \
     NEP5.Contract/Nep5Token.cs
 
 echo "Preprocessing..."
@@ -16,7 +16,7 @@ echo "Preprocessing..."
     NEP5.Contract/Nep5Token.cs
 
 echo "Publishing commons..."
-dotnet publish --configuration Release NEP5.Common
+dotnet publish --configuration Release Common
 
 echo "Publishing contract..."
 dotnet publish --configuration Release NEP5.Contract
