@@ -34,7 +34,7 @@ namespace NEP5.Tests
 
         private void ExecuteInit()
         {
-            var initResult = _emulator.Execute(Operations.Init, _scriptHashes[0]).GetBoolean();
+            var initResult = _emulator.Execute(Operations.Init).GetBoolean();
             Console.WriteLine($"Init result: {initResult}");
             Assert.IsTrue(initResult);
         }
