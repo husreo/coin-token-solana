@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 set -e
 
+echo "Starting compile token script..."
+
 echo "Cleaning..."
 rm -rf \
     Common/bin \
@@ -11,12 +13,9 @@ rm -rf \
 
 echo "Preprocessing..."
 ./node_modules/.bin/c-preprocessor --config \
-    c-preprocessor-config.json \
+    token-config.json \
     NEP5.Contract/Nep5Token.template.cs \
     NEP5.Contract/Nep5Token.cs
-
-echo "Publishing commons..."
-dotnet publish --configuration Release Common
 
 echo "Publishing contract..."
 dotnet publish --configuration Release NEP5.Contract

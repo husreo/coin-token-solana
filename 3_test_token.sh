@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 set -e
 
+echo "Starting test token script..."
+
 echo "Cleaning..."
 rm -rf \
     NEP5.Tests/bin \
@@ -8,7 +10,7 @@ rm -rf \
 
 echo "Preprocessing..."
 ./node_modules/.bin/c-preprocessor --config \
-    c-preprocessor-config.json \
+    token-config.json \
     NEP5.Tests/Nep5TokenTest.template.cs \
     NEP5.Tests/Nep5TokenTest.cs
 
