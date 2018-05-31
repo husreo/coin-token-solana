@@ -1,18 +1,17 @@
-﻿using System;
-using System.ComponentModel;
+﻿using System.ComponentModel;
 using System.Numerics;
 using Neo.SmartContract.Framework;
 using Neo.SmartContract.Framework.Services.Neo;
 using Neo.SmartContract.Framework.Services.System;
-using NEP5.Common;
+using Common;
 
 namespace Crowdsale.Contract
 {
     public class Crowdsale : SmartContract
     {
         //Token Settings
-        public static readonly byte[] Owner = "ATrzHaicmhRj15C3Vv6e6gLfLqhSD2PtTr".ToScriptHash();
-        private const ulong Factor = 100000000; //decided by Decimals()
+        private static readonly byte[] InitialOwnerScriptHash = "APyEx5f4Zm4oCHwFWiSTaph1fPBxZacYVR".ToScriptHash();
+        private const ulong Factor = 100000000;
         private const ulong DecimalsMultiplier = 100000000;
 
         //ICO Settings
@@ -22,40 +21,35 @@ namespace Crowdsale.Contract
         private const int StartTime = 1506787200;
         private const int EndTime = 1538323200;
 
-        [DisplayName("transfer")]
-        public static event Types.Action<byte[], byte[], BigInteger> Transferred;
-
+        [DisplayName("buyTokens")]
+        public static event Types.Action<byte[], ulong, ulong> TokenPurchase; 
+        
         [DisplayName("refund")]
         public static event Types.Action<byte[], BigInteger> Refund;
+ 
+        [DisplayName("transferOwnership")]
+        public static event Types.Action<byte[]> OwnershipTransferred;
 
-        [Appcall("d2cc940d7b95d8520656351707b84c0125b4cbbb")]
-        public static extern Object Nep5Call(string operation, params object[] args);
+        [Appcall("612047ef0f529e02d6907047d91c1fb4e14e51ca")]
+        private static extern object Nep5Call(string operation, params object[] args);
         
-        public static Object Main(string operation, params object[] args)
+        public static object Main(string operation, params object[] args)
         {
             if (Runtime.Trigger == TriggerType.Verification)
             {
-                if (Owner.Length == 20)
-                {
-                    // if param Owner is script hash
-                    return Runtime.CheckWitness(Owner);
-                }
-                else if (Owner.Length == 33)
-                {
-                    // if param Owner is public key
-                    byte[] signature = operation.AsByteArray();
-                    return VerifySignature(signature, Owner);
-                }
+                return true;
             }
-            else if (Runtime.Trigger == TriggerType.Application)
+
+            if (Runtime.Trigger == TriggerType.Application)
             {
-                if (operation == "balanceOf")
-                {
-                    if (args.Length != 1) return 0;
-                    byte[] account = (byte[]) args[0];
-                    return BalanceOf(account);
-                }
                 if (operation == "mintTokens") return MintTokens();
+                if (operation == "owner") return Owner();
+                if (operation == Operations.TransferOwnership)
+                {
+                    if (args.Length != 1) return false;
+                    var target = (byte[]) args[0];
+                    return TransferOwnership(target);
+                }
             }
 
             //you can choice refund or not refund
@@ -69,10 +63,18 @@ namespace Crowdsale.Contract
             return false;
         }
 
-        // get the account balance of another account with address
-        public static BigInteger BalanceOf(byte[] address)
+        public static byte[] Owner()
         {
-            return Storage.Get(Storage.CurrentContext, address).AsBigInteger();
+            return Storage.Get(Storage.CurrentContext, Constants.Owner) ?? InitialOwnerScriptHash;
+        }
+        
+        public static bool TransferOwnership(byte[] target)
+        {
+            if (!Runtime.CheckWitness(Owner())) return false;
+            if (target.Length != 20) return false;
+            Storage.Put(Storage.CurrentContext, Constants.Owner, target);
+            OwnershipTransferred(target);
+            return true;
         }
 
         // The function MintTokens is only usable by the chosen wallet
@@ -90,49 +92,34 @@ namespace Crowdsale.Contract
 
             ulong contributeValue = GetContributeValue();
             // the current exchange rate between ico tokens and neo during the token swap period
-            ulong swapRate = CurrentSwapRate();
+            ulong rate = GetRate();
             // crowdfunding failure
-            if (swapRate == 0)
+            if (rate == 0)
             {
                 Refund(sender, contributeValue);
                 return false;
             }
 
             // you can get current swap token amount
-            ulong token = CurrentSwapToken(sender, contributeValue, swapRate);
-            if (token == 0)
+            ulong tokens = GetTokensCount(sender, contributeValue, rate);
+            if (tokens == 0)
             {
                 return false;
             }
 
-            // crowdfunding success
-            BigInteger balance = Storage.Get(Storage.CurrentContext, sender).AsBigInteger();
-            Storage.Put(Storage.CurrentContext, sender, token + balance);
-            BigInteger totalSupply = Storage.Get(Storage.CurrentContext, "totalSupply").AsBigInteger();
-            Storage.Put(Storage.CurrentContext, "totalSupply", token + totalSupply);
-            Transferred(null, sender, token);
-            return true;
-        }
-
-        // get the total token supply
-        public static BigInteger TotalSupply()
-        {
-            return Storage.Get(Storage.CurrentContext, "totalSupply").AsBigInteger();
+            Runtime.Log("MINTING");
+            var result = (bool) Nep5Call(Operations.Mint, sender, tokens);
+            Runtime.Log("RETURNING");
+            TokenPurchase(sender, contributeValue, tokens);
+            return result;
         }
 
         // The function CurrentSwapRate() returns the current exchange rate
         // between ico tokens and neo during the token swap period
-        private static ulong CurrentSwapRate()
+        private static ulong GetRate()
         {
-            const int icoDuration = EndTime - StartTime;
-            uint now = Runtime.Time;
-            int time = (int) now - StartTime;
-            if (time < 0)
-            {
-                return 0;
-            }
-
-            if (time < icoDuration)
+            var now = Runtime.Time;
+            if (StartTime <= now && now <= EndTime)
             {
                 return BasicRate;
             }
@@ -141,9 +128,9 @@ namespace Crowdsale.Contract
         }
 
         //whether over contribute capacity, you can get the token amount
-        private static ulong CurrentSwapToken(byte[] sender, ulong value, ulong swapRate)
+        private static ulong GetTokensCount(byte[] sender, ulong value, ulong rate)
         {
-            ulong token = value / DecimalsMultiplier * swapRate;
+            ulong token = value / DecimalsMultiplier * rate;
             BigInteger totalSupply = Storage.Get(Storage.CurrentContext, "totalSupply").AsBigInteger();
             BigInteger balanceToken = TotalAmount - totalSupply;
             if (balanceToken <= 0)
@@ -154,7 +141,7 @@ namespace Crowdsale.Contract
 
             if (balanceToken < token)
             {
-                Refund(sender, (token - balanceToken) / swapRate * DecimalsMultiplier);
+                Refund(sender, (token - balanceToken) / rate * DecimalsMultiplier);
                 token = (ulong) balanceToken;
             }
 
