@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Linq;
+using System.IO;
 using System.Numerics;
 using Neo.Emulation;
 using Neo.Emulation.API;
@@ -22,14 +23,16 @@ namespace Crowdsale.Tests
 
         private static Blockchain _chain;
         private static Emulator _emulator;
+        private static Account _owner;
 
         [SetUp]
         public void Setup()
         {
             _chain = new Blockchain();
             _emulator = new Emulator(_chain);
-            var owner = _chain.DeployContract("owner", TestHelper.Avm);
-            _emulator.SetExecutingAccount(owner);
+            _owner = _chain.DeployContract("owner", File.ReadAllBytes(TestHelper.CrowdsaleContractFilePath));
+            _emulator.SetExecutingAccount(_owner);
+            Runtime.invokerKeys = _owner.keys;
         }
 
         private void ExecuteInit()
@@ -220,7 +223,7 @@ namespace Crowdsale.Tests
         {
             ExecuteInit();
             _emulator.SetTransaction(NeoAssetId, 1);
-            var result = _emulator.Execute(Operations.MintTokens);
+            var result = _emulator.Execute(Operations.MintTokens).GetBoolean();
             Console.WriteLine($"MintTokens result: {result}");
             Assert.IsTrue(result);
         }

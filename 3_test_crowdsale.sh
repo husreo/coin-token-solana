@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -e
 
-echo "Starting test token script..."
+echo "Starting test crowdsale script..."
 
 echo "Cleaning..."
 rm -rf \
