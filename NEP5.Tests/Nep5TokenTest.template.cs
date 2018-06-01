@@ -5,10 +5,10 @@ using System.Numerics;
 using Neo.Emulation;
 using Neo.Emulation.API;
 using Neo.Lux.Utils;
-using NEP5.Common;
+using Common;
 using NUnit.Framework;
 
-namespace NEP5.Contract.Tests
+namespace NEP5.Tests
 {
     [TestFixture]
     public class Nep5TokenTest
@@ -28,13 +28,13 @@ namespace NEP5.Contract.Tests
         {
             _chain = new Blockchain();
             _emulator = new Emulator(_chain);
-            var owner = _chain.DeployContract("owner", TestHelper.Avm);
+            var owner = _chain.DeployContract("owner", TestHelper.Nep5Avm);
             _emulator.SetExecutingAccount(owner);
         }
 
-        public void ExecuteInit()
+        private void ExecuteInit()
         {
-            var initResult = _emulator.Execute(Operations.Init, _scriptHashes[0]).GetBoolean();
+            var initResult = _emulator.Execute(Operations.Init).GetBoolean();
             Console.WriteLine($"Init result: {initResult}");
             Assert.IsTrue(initResult);
         }

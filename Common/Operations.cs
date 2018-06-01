@@ -1,4 +1,4 @@
-﻿namespace NEP5.Common
+﻿namespace Common
 {
     public static class Operations
     {
@@ -20,5 +20,6 @@
         public const string Paused = "paused";
         public const string Unpause = "unpause";
         public const string TransferOwnership = "transferOwnership";
+        public const string MintTokens = "mintTokens";
     }
 }

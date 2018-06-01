@@ -3,10 +3,10 @@
     <TargetFramework>netcoreapp2.0</TargetFramework>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Remove="Nep5Token.template.cs" />
+    <Compile Remove="Crowdsale.template.cs" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="Nep5Token.template.cs" />
+    <None Include="Crowdsale.template.cs" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Neo.SmartContract.Framework" Version="2.7.3" />
