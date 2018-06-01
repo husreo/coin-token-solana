@@ -28,7 +28,7 @@ namespace NEP5.Tests
         {
             _chain = new Blockchain();
             _emulator = new Emulator(_chain);
-            var owner = _chain.DeployContract("owner", TestHelper.Avm);
+            var owner = _chain.DeployContract("owner", TestHelper.Nep5Avm);
             _emulator.SetExecutingAccount(owner);
         }
 

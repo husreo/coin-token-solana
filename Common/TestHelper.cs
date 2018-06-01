@@ -12,8 +12,11 @@ namespace Common
     {
         private const string Nep5ContractFilePath =
             "../../../../NEP5.Contract/bin/Release/netcoreapp2.0/publish/NEP5.Contract.avm";
+        private const string CrowdsaleContractFilePath =
+            "../../../../Crowdsale.Contract/bin/Release/netcoreapp2.0/publish/Crowdsale.Contract.avm";
 
-        public static readonly byte[] Avm = File.ReadAllBytes(Nep5ContractFilePath);
+        public static readonly byte[] Nep5Avm = File.ReadAllBytes(Nep5ContractFilePath);
+        public static readonly byte[] CrowdsaleAvm = File.ReadAllBytes(CrowdsaleContractFilePath);
 
         public static StackItem Execute(this Emulator emulator, string operation, params object[] args)
         {
