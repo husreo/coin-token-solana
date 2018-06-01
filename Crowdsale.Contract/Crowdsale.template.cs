@@ -78,6 +78,7 @@ namespace Crowdsale.Contract
 
             if (Runtime.Trigger == TriggerType.Application)
             {
+                if (operation == Operations.MintTokens) return MintTokens();
                 if (operation == Operations.Init) return Init();
                 if (operation == Operations.Owner) return Owner();
                 if (operation == Operations.Name) return Name();
@@ -144,7 +145,6 @@ namespace Crowdsale.Contract
             {
                 Refund(sender, contributeValue);
             }
-            if (operation == Operations.MintTokens) return MintTokens();
             
             return false;
         }
