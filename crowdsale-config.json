@@ -2,10 +2,12 @@
   "constants": {
     "D_NAME": "MyWish Token",
     "D_SYMBOL": "WISH",
-    "D_DECIMALS": 8,
+    "D_DECIMALS": 10,
     "D_OWNER": "APyEx5f4Zm4oCHwFWiSTaph1fPBxZacYVR",
     "D_START_TIME": 1506787200,
     "D_END_TIME": 1538323200,
+    "D_RATE": 1000,
+    "D_HARD_CAP_NEO": 1000000,
 
     "D_PREMINT_COUNT": 3,
     "D_PREMINT_ADDRESS_0": "AJzoeKrj7RHMwSrPQDPdv61ciVEYpmhkjk",

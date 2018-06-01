@@ -13,14 +13,12 @@ namespace Crowdsale.Contract
         public static string Name() => "D_NAME";
         public static string Symbol() => "D_SYMBOL";
         public static byte Decimals() => D_DECIMALS;
-        private const ulong Factor = 100000000; // todo
-        private const ulong DecimalsMultiplier = 100000000; // todo
         private static readonly byte[] InitialOwnerScriptHash = "D_OWNER".ToScriptHash();
         
         // ICO Settings
         private static readonly byte[] NeoAssetId = {155, 124, 255, 218, 166, 116, 190, 174, 15, 147, 14, 190, 96, 133, 175, 144, 147, 229, 254, 86, 179, 74, 92, 34, 12, 205, 207, 110, 252, 51, 111, 197};
-        private const ulong TotalAmount = 100000000 * Factor; // total token amount
-        private const ulong BasicRate = 1000 * Factor;
+        private const ulong HardCapNeo = D_HARD_CAP_NEO;
+        private const ulong Rate = D_RATE;
         private const int StartTime = D_START_TIME;
         private const int EndTime = D_END_TIME;
         
@@ -58,65 +56,84 @@ namespace Crowdsale.Contract
         [DisplayName("transferOwnership")]
         public static event Types.Action<byte[]> OwnershipTransferred;
 
+        private static ulong Pow(ulong a, ulong b)
+        {
+            var result = a;
+            for (ulong i = 2; i <= b; i++)
+            {
+                result = result * a;
+            }
+
+            return result;
+        }
+
         public static object Main(string operation, params object[] args)
         {
-            if (operation == Operations.Init) return Init();
-            if (operation == Operations.Owner) return Owner();
-            if (operation == Operations.Name) return Name();
-            if (operation == Operations.Symbol) return Symbol();
-            if (operation == Operations.Decimals) return Decimals();
-            if (operation == Operations.BalanceOf)
+            if (Runtime.Trigger == TriggerType.Verification)
             {
-                if (args.Length != 1) return false;
-                var account = (byte[]) args[0];
-                return BalanceOf(account);
+                return true;
             }
 
-            if (operation == Operations.Transfer)
+            if (Runtime.Trigger == TriggerType.Application)
             {
-                if (args.Length != 3) return false;
-                var from = (byte[]) args[0];
-                var to = (byte[]) args[1];
-                var value = (BigInteger) args[2];
-                return Transfer(from, to, value);
-            }
-
-            if (operation == Operations.TotalSupply) return TotalSupply();
-            if (operation == Operations.Allowance)
-            {
-                if (args.Length != 2) return false;
-                var from = (byte[]) args[0];
-                var to = (byte[]) args[1];
-                return Allowance(from, to);
-            }
-
-            if (operation == Operations.Approve)
-            {
-                if (args.Length != 3) return false;
-                var originator = (byte[]) args[0];
-                var to = (byte[]) args[1];
-                var value = (BigInteger) args[2];
-                return Approve(originator, to, value);
-            }
-
-            if (operation == Operations.TransferFrom)
-            {
-                if (args.Length != 4) return false;
-                var originator = (byte[]) args[0];
-                var from = (byte[]) args[1];
-                var to = (byte[]) args[2];
-                var value = (BigInteger) args[3];
-                return TransferFrom(originator, from, to, value);
-            }
-
-            if (operation == Operations.Pause) return Pause();
-            if (operation == Operations.Paused) return Paused();
-            if (operation == Operations.Unpause) return Unpause();
-            if (operation == Operations.TransferOwnership)
-            {
-                if (args.Length != 1) return false;
-                var target = (byte[]) args[0];
-                return TransferOwnership(target);
+                if (operation == Operations.Init) return Init();
+                if (operation == Operations.Owner) return Owner();
+                if (operation == Operations.Name) return Name();
+                if (operation == Operations.Symbol) return Symbol();
+                if (operation == Operations.Decimals) return Decimals();
+                if (operation == Operations.BalanceOf)
+                {
+                    if (args.Length != 1) return false;
+                    var account = (byte[]) args[0];
+                    return BalanceOf(account);
+                }
+    
+                if (operation == Operations.Transfer)
+                {
+                    if (args.Length != 3) return false;
+                    var from = (byte[]) args[0];
+                    var to = (byte[]) args[1];
+                    var value = (BigInteger) args[2];
+                    return Transfer(from, to, value);
+                }
+    
+                if (operation == Operations.TotalSupply) return TotalSupply();
+                if (operation == Operations.Allowance)
+                {
+                    if (args.Length != 2) return false;
+                    var from = (byte[]) args[0];
+                    var to = (byte[]) args[1];
+                    return Allowance(from, to);
+                }
+    
+                if (operation == Operations.Approve)
+                {
+                    if (args.Length != 3) return false;
+                    var originator = (byte[]) args[0];
+                    var to = (byte[]) args[1];
+                    var value = (BigInteger) args[2];
+                    return Approve(originator, to, value);
+                }
+    
+                if (operation == Operations.TransferFrom)
+                {
+                    if (args.Length != 4) return false;
+                    var originator = (byte[]) args[0];
+                    var from = (byte[]) args[1];
+                    var to = (byte[]) args[2];
+                    var value = (BigInteger) args[3];
+                    return TransferFrom(originator, from, to, value);
+                }
+    
+                if (operation == Operations.Pause) return Pause();
+                if (operation == Operations.Paused) return Paused();
+                if (operation == Operations.Unpause) return Unpause();
+                if (operation == Operations.TransferOwnership)
+                {
+                    if (args.Length != 1) return false;
+                    var target = (byte[]) args[0];
+                    return TransferOwnership(target);
+                }
             }
 
             byte[] sender = GetSender();
@@ -296,62 +313,47 @@ namespace Crowdsale.Contract
             }
 
             ulong contributeValue = GetContributeValue();
-            // the current exchange rate between ico tokens and neo during the token swap period
-            ulong rate = GetRate();
+            
             // crowdfunding failure
-            if (rate == 0)
+            if (Runtime.Time < StartTime || Runtime.Time > EndTime)
             {
                 Refund(sender, contributeValue);
                 return false;
             }
 
             // you can get current swap token amount
-            ulong tokens = GetTokensCount(sender, contributeValue, rate);
+            ulong tokens = GetTokensCount(sender, contributeValue);
             if (tokens == 0)
             {
                 return false;
             }
 
-            Storage.Put(Storage.CurrentContext, sender, BalanceOf(sender) + tokens);
-            Storage.Put(Storage.CurrentContext, Constants.TotalSupply, TotalSupply() + tokens);
-            Minted(sender, tokens);
-            Transferred(null, sender, tokens);
+            _Mint(sender, tokens);
             TokenPurchase(sender, contributeValue, tokens);
             return true;
         }
 
-        // The function CurrentSwapRate() returns the current exchange rate
-        // between ico tokens and neo during the token swap period
-        private static ulong GetRate()
-        {
-            var now = Runtime.Time;
-            if (StartTime <= now && now <= EndTime)
-            {
-                return BasicRate;
-            }
-
-            return 0;
-        }
-
         //whether over contribute capacity, you can get the token amount
-        private static ulong GetTokensCount(byte[] sender, ulong value, ulong rate)
+        private static ulong GetTokensCount(byte[] sender, ulong value)
         {
-            ulong token = value / DecimalsMultiplier * rate;
-            BigInteger totalSupply = Storage.Get(Storage.CurrentContext, "totalSupply").AsBigInteger();
-            BigInteger balanceToken = TotalAmount - totalSupply;
-            if (balanceToken <= 0)
+            ulong decimalsMultiplier = Pow(10, Decimals());
+            ulong tokens = value * Rate * decimalsMultiplier;
+            BigInteger totalSupply = TotalSupply();
+            ulong hardCapTokens = HardCapNeo * Rate * decimalsMultiplier;
+            BigInteger remainingTokens = hardCapTokens - totalSupply;
+            if (remainingTokens <= 0)
             {
                 Refund(sender, value);
                 return 0;
             }
 
-            if (balanceToken < token)
+            if (remainingTokens < tokens)
             {
-                Refund(sender, (token - balanceToken) / rate * DecimalsMultiplier);
-                token = (ulong) balanceToken;
+                Refund(sender, (tokens - remainingTokens) / Rate / decimalsMultiplier);
+                tokens = (ulong) remainingTokens;
             }
 
-            return token;
+            return tokens;
         }
 
         // check whether asset is neo and get sender script hash
