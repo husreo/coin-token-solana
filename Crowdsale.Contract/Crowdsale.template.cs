@@ -38,6 +38,8 @@ namespace Crowdsale.Contract
         #endif
         #endif
         
+        public static string CreationDateTime() => "__DATE__ __TIME__";
+        
         [DisplayName("buyTokens")]
         public static event Types.Action<byte[], ulong, ulong> TokenPurchase; 
         

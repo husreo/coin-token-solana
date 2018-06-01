@@ -28,6 +28,8 @@ namespace NEP5.Contract
         #endif
         #endif
         
+        public static string CreationDateTime() => "__DATE__ __TIME__";
+        
         [DisplayName("transfer")]
         public static event Types.Action<byte[], byte[], BigInteger> Transferred;
         
