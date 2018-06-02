@@ -24,6 +24,12 @@ namespace Crowdsale.Tests
         private static Blockchain _chain;
         private static Emulator _emulator;
         private static Account _owner;
+        
+        private static readonly BigInteger Rate = new BigInteger(D_RATE);
+        private static readonly BigInteger HardCapNeo = new BigInteger(D_HARD_CAP_NEO);
+        private static readonly int StartTime = D_START_TIME;
+        private static readonly int EndTime = D_END_TIME;
+        private static readonly BigInteger DecimalsMultiplier = BigInteger.Pow(10, D_DECIMALS);
 
         [SetUp]
         public void Setup()
@@ -222,10 +228,20 @@ namespace Crowdsale.Tests
         public void T17_SimpleBuy()
         {
             ExecuteInit();
-            _emulator.SetTransaction(NeoAssetId, 1);
-            var result = _emulator.Execute(Operations.MintTokens).GetBoolean();
-            Console.WriteLine($"MintTokens result: {result}");
-            Assert.IsTrue(result);
+
+            var buyerScriptHash = _owner.keys.address.AddressToScriptHash();
+            var neo = BigInteger.One;
+            var balanceBefore = _emulator.Execute(Operations.BalanceOf, buyerScriptHash).GetBigInteger();
+            
+            _emulator.SetTransaction(NeoAssetId, neo);
+            var buyResult = _emulator.Execute(Operations.MintTokens).GetBoolean();
+            Console.WriteLine($"Buy result: {buyResult}");
+            Assert.IsTrue(buyResult);
+            
+            var balanceAfter = _emulator.Execute(Operations.BalanceOf, buyerScriptHash).GetBigInteger();
+            Console.WriteLine($"Neo sent: {neo}");
+            Console.WriteLine($"Tokens buy: {balanceAfter - balanceBefore}");
+            Assert.AreEqual(neo * Rate * DecimalsMultiplier, balanceAfter - balanceBefore);
         }
     }
 }
