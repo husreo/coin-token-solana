@@ -27,8 +27,8 @@ namespace Crowdsale.Tests
         
         private static readonly BigInteger Rate = new BigInteger(D_RATE);
         private static readonly BigInteger HardCapNeo = new BigInteger(D_HARD_CAP_NEO);
-        private static readonly int StartTime = D_START_TIME;
-        private static readonly int EndTime = D_END_TIME;
+        private static readonly uint StartTime = D_START_TIME;
+        private static readonly uint EndTime = D_END_TIME;
         private static readonly BigInteger DecimalsMultiplier = BigInteger.Pow(10, D_DECIMALS);
 
         [SetUp]
@@ -229,6 +229,7 @@ namespace Crowdsale.Tests
         {
             ExecuteInit();
 
+            _emulator.timestamp = StartTime;
             var buyerScriptHash = _owner.keys.address.AddressToScriptHash();
             var neo = BigInteger.One;
             var balanceBefore = _emulator.Execute(Operations.BalanceOf, buyerScriptHash).GetBigInteger();
@@ -249,6 +250,7 @@ namespace Crowdsale.Tests
         {
             ExecuteInit();
 
+            _emulator.timestamp = StartTime;
             var buyerScriptHash = _owner.keys.address.AddressToScriptHash();
             var neo = HardCapNeo;
             var balanceBefore = _emulator.Execute(Operations.BalanceOf, buyerScriptHash).GetBigInteger();
@@ -269,6 +271,7 @@ namespace Crowdsale.Tests
         {
             ExecuteInit();
 
+            _emulator.timestamp = StartTime;
             var buyerScriptHash = _owner.keys.address.AddressToScriptHash();
             var neo = HardCapNeo + 1;
             var balanceBefore = _emulator.Execute(Operations.BalanceOf, buyerScriptHash).GetBigInteger();
@@ -289,6 +292,7 @@ namespace Crowdsale.Tests
         {
             ExecuteInit();
 
+            _emulator.timestamp = StartTime;
             var buyerScriptHash = _owner.keys.address.AddressToScriptHash();
             var neo = HardCapNeo;
             var balanceBefore = _emulator.Execute(Operations.BalanceOf, buyerScriptHash).GetBigInteger();
