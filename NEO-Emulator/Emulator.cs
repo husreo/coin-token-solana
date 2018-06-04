@@ -466,15 +466,12 @@ namespace Neo.Emulation
             //new UInt160(CryptoUtils.AddressToScriptHash(this.currentAccount.keys.address));
             this.currentHash = dst_hash;
 
-            BigInteger asset_decimals = 100000000;
-            BigInteger total_amount = (amount * 10) * asset_decimals; // FIXME instead of (amount * 10) we should take balance from virtual blockchain
-
             var block = blockchain.GenerateBlock();
 
             var tx = new API.Transaction(block);
 
+            tx.outputs.Add(new API.TransactionOutput(assetID, amount, src_hash));
             tx.outputs.Add(new API.TransactionOutput(assetID, amount, dst_hash));
-            tx.outputs.Add(new API.TransactionOutput(assetID, total_amount - amount, src_hash));
 
             blockchain.ConfirmBlock(block);
           

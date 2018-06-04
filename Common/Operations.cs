@@ -21,5 +21,6 @@
         public const string Unpause = "unpause";
         public const string TransferOwnership = "transferOwnership";
         public const string MintTokens = "mintTokens";
+        public const string NeoRaised = "neoRaised";
     }
 }
