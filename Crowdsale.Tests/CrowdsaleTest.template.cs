@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.IO;
 using System.Numerics;
@@ -267,7 +268,7 @@ namespace Crowdsale.Tests
         }
 
         [Test]
-        public void T19_CheckBuyMoreHardCap()
+        public void T19_CheckBuyMoreHardCapNotAllowed()
         {
             ExecuteInit();
 
@@ -288,7 +289,7 @@ namespace Crowdsale.Tests
         }
 
         [Test]
-        public void T20_CheckBuyAfterHardCapReached()
+        public void T20_CheckBuyNotAllowedAfterHardCapReached()
         {
             ExecuteInit();
 
@@ -310,6 +311,28 @@ namespace Crowdsale.Tests
             var buy2Result = _emulator.Execute(Operations.MintTokens).GetBoolean();
             Console.WriteLine($"Buy result: {buy2Result}");
             Assert.IsFalse(buy2Result);
+        }
+
+        [Test]
+        public void T21_CheckBuyNotAllowedBeforeCrowdsaleStart()
+        {
+            ExecuteInit();
+            _emulator.timestamp = StartTime - 1;
+            _emulator.SetTransaction(NeoAssetId, 1);
+            var buyResult = _emulator.Execute(Operations.MintTokens).GetBoolean();
+            Console.WriteLine($"Buy result: {buyResult}");
+            Assert.IsFalse(buyResult);
+        }
+
+        [Test]
+        public void T22_CheckBuyNotAllowedAfterCrowdsaleEnd()
+        {
+            ExecuteInit();
+            _emulator.timestamp = EndTime + 1;
+            _emulator.SetTransaction(NeoAssetId, 1);
+            var buyResult = _emulator.Execute(Operations.MintTokens).GetBoolean();
+            Console.WriteLine($"Buy result: {buyResult}");
+            Assert.IsFalse(buyResult);
         }
     }
 }
