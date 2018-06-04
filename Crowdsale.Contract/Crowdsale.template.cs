@@ -17,10 +17,10 @@ namespace Crowdsale.Contract
         
         // ICO Settings
         private static readonly byte[] NeoAssetId = {155, 124, 255, 218, 166, 116, 190, 174, 15, 147, 14, 190, 96, 133, 175, 144, 147, 229, 254, 86, 179, 74, 92, 34, 12, 205, 207, 110, 252, 51, 111, 197};
-        private const ulong HardCapNeo = D_HARD_CAP_NEO;
-        private const ulong Rate = D_RATE;
-        private const int StartTime = D_START_TIME;
-        private const int EndTime = D_END_TIME;
+        private static readonly BigInteger HardCapNeo = new BigInteger(D_HARD_CAP_NEO);
+        private static readonly BigInteger Rate = new BigInteger(D_RATE);
+        private static readonly int StartTime = D_START_TIME;
+        private static readonly int EndTime = D_END_TIME;
         
         #if D_PREMINT_COUNT > 0
         // Premint parameters
@@ -41,7 +41,7 @@ namespace Crowdsale.Contract
         public static string CreationDateTime() => "__DATE__ __TIME__";
         
         [DisplayName("buyTokens")]
-        public static event Types.Action<byte[], ulong, ulong> TokenPurchase; 
+        public static event Types.Action<byte[], BigInteger, BigInteger> TokenPurchase; 
         
         [DisplayName("refund")]
         public static event Types.Action<byte[], BigInteger> Refund;
@@ -60,6 +60,8 @@ namespace Crowdsale.Contract
 
         private static ulong Pow(ulong a, ulong b)
         {
+            if (b == 0) return 1UL;
+            
             var result = a;
             for (ulong i = 2; i <= b; i++)
             {
@@ -137,10 +139,12 @@ namespace Crowdsale.Contract
                     var target = (byte[]) args[0];
                     return TransferOwnership(target);
                 }
+
+                if (operation == Operations.NeoRaised) return NeoRaised();
             }
 
             byte[] sender = GetSender();
-            ulong contributeValue = GetContributeValue();
+            BigInteger contributeValue = GetContributeValue();
             if (contributeValue > 0 && sender.Length != 0)
             {
                 Refund(sender, contributeValue);
@@ -314,7 +318,7 @@ namespace Crowdsale.Contract
                 return false;
             }
 
-            ulong contributeValue = GetContributeValue();
+            BigInteger contributeValue = GetContributeValue();
             
             // crowdfunding failure
             if (Runtime.Time < StartTime || Runtime.Time > EndTime)
@@ -324,38 +328,41 @@ namespace Crowdsale.Contract
             }
 
             // you can get current swap token amount
-            ulong tokens = GetTokensCount(sender, contributeValue);
+            BigInteger tokens = GetTokensCount(sender, contributeValue);
             if (tokens == 0)
             {
                 return false;
             }
 
             _Mint(sender, tokens);
+            Storage.Put(Storage.CurrentContext, Constants.NeoRaised, NeoRaised() + contributeValue);
             TokenPurchase(sender, contributeValue, tokens);
             return true;
         }
 
-        //whether over contribute capacity, you can get the token amount
-        private static ulong GetTokensCount(byte[] sender, ulong value)
+        public static BigInteger NeoRaised()
         {
-            ulong decimalsMultiplier = Pow(10, Decimals());
-            ulong tokens = value * Rate * decimalsMultiplier;
-            BigInteger totalSupply = TotalSupply();
-            ulong hardCapTokens = HardCapNeo * Rate * decimalsMultiplier;
-            BigInteger remainingTokens = hardCapTokens - totalSupply;
-            if (remainingTokens <= 0)
+            return Storage.Get(Storage.CurrentContext, Constants.NeoRaised).AsBigInteger();
+        }
+
+        //whether over contribute capacity, you can get the token amount
+        private static BigInteger GetTokensCount(byte[] sender, BigInteger value)
+        {
+            BigInteger availableNeo = HardCapNeo - NeoRaised();
+            if (availableNeo <= 0)
             {
                 Refund(sender, value);
                 return 0;
             }
-
-            if (remainingTokens < tokens)
+            
+            if (value > availableNeo)
             {
-                Refund(sender, (tokens - remainingTokens) / Rate / decimalsMultiplier);
-                tokens = (ulong) remainingTokens;
+                Refund(sender, value - availableNeo);
+                value = availableNeo;
             }
-
-            return tokens;
+            
+            ulong decimalsMultiplier = Pow(10, Decimals());
+            return value * Rate * decimalsMultiplier;
         }
 
         // check whether asset is neo and get sender script hash
@@ -379,17 +386,17 @@ namespace Crowdsale.Contract
         }
 
         // get all you contribute neo amount
-        private static ulong GetContributeValue()
+        private static BigInteger GetContributeValue()
         {
             Transaction tx = (Transaction) ExecutionEngine.ScriptContainer;
             TransactionOutput[] outputs = tx.GetOutputs();
-            ulong value = 0;
+            BigInteger value = 0;
             // get the total amount of Neo
             foreach (TransactionOutput output in outputs)
             {
                 if (output.ScriptHash == GetReceiver() && output.AssetId == NeoAssetId)
                 {
-                    value += (ulong) output.Value;
+                    value += (BigInteger) output.Value;
                 }
             }
 

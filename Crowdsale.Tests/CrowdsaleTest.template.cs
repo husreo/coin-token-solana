@@ -225,7 +225,7 @@ namespace Crowdsale.Tests
         }
 
         [Test]
-        public void T17_SimpleBuy()
+        public void T17_CheckSimpleBuy()
         {
             ExecuteInit();
 
@@ -242,6 +242,70 @@ namespace Crowdsale.Tests
             Console.WriteLine($"Neo sent: {neo}");
             Console.WriteLine($"Tokens buy: {balanceAfter - balanceBefore}");
             Assert.AreEqual(neo * Rate * DecimalsMultiplier, balanceAfter - balanceBefore);
+        }
+
+        [Test]
+        public void T18_CheckBuyHardCap()
+        {
+            ExecuteInit();
+
+            var buyerScriptHash = _owner.keys.address.AddressToScriptHash();
+            var neo = HardCapNeo;
+            var balanceBefore = _emulator.Execute(Operations.BalanceOf, buyerScriptHash).GetBigInteger();
+            
+            _emulator.SetTransaction(NeoAssetId, neo);
+            var buyResult = _emulator.Execute(Operations.MintTokens).GetBoolean();
+            Console.WriteLine($"Buy result: {buyResult}");
+            Assert.IsTrue(buyResult);
+            
+            var balanceAfter = _emulator.Execute(Operations.BalanceOf, buyerScriptHash).GetBigInteger();
+            Console.WriteLine($"Neo sent: {neo}");
+            Console.WriteLine($"Tokens buy: {balanceAfter - balanceBefore}");
+            Assert.AreEqual(HardCapNeo * Rate * DecimalsMultiplier, balanceAfter - balanceBefore);
+        }
+
+        [Test]
+        public void T19_CheckBuyMoreHardCap()
+        {
+            ExecuteInit();
+
+            var buyerScriptHash = _owner.keys.address.AddressToScriptHash();
+            var neo = HardCapNeo + 1;
+            var balanceBefore = _emulator.Execute(Operations.BalanceOf, buyerScriptHash).GetBigInteger();
+            
+            _emulator.SetTransaction(NeoAssetId, neo);
+            var buyResult = _emulator.Execute(Operations.MintTokens).GetBoolean();
+            Console.WriteLine($"Buy result: {buyResult}");
+            Assert.IsTrue(buyResult);
+            
+            var balanceAfter = _emulator.Execute(Operations.BalanceOf, buyerScriptHash).GetBigInteger();
+            Console.WriteLine($"Neo sent: {neo}");
+            Console.WriteLine($"Tokens buy: {balanceAfter - balanceBefore}");
+            Assert.AreEqual(HardCapNeo * Rate * DecimalsMultiplier, balanceAfter - balanceBefore);
+        }
+
+        [Test]
+        public void T20_CheckBuyAfterHardCapReached()
+        {
+            ExecuteInit();
+
+            var buyerScriptHash = _owner.keys.address.AddressToScriptHash();
+            var neo = HardCapNeo;
+            var balanceBefore = _emulator.Execute(Operations.BalanceOf, buyerScriptHash).GetBigInteger();
+            
+            _emulator.SetTransaction(NeoAssetId, neo);
+            var buy1Result = _emulator.Execute(Operations.MintTokens).GetBoolean();
+            Console.WriteLine($"Buy result: {buy1Result}");
+            Assert.IsTrue(buy1Result);
+            
+            var balanceAfter = _emulator.Execute(Operations.BalanceOf, buyerScriptHash).GetBigInteger();
+            Console.WriteLine($"Neo sent: {neo}");
+            Console.WriteLine($"Tokens buy: {balanceAfter - balanceBefore}");
+
+            _emulator.SetTransaction(NeoAssetId, 1);
+            var buy2Result = _emulator.Execute(Operations.MintTokens).GetBoolean();
+            Console.WriteLine($"Buy result: {buy2Result}");
+            Assert.IsFalse(buy2Result);
         }
     }
 }
