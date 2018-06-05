@@ -353,6 +353,7 @@ namespace Crowdsale.Tests
         public void T23_CheckTransfer()
         {
             ExecuteInitWithTransferringOwnership();
+            _emulator.timestamp = StartTime;
             _emulator.SetTransaction(NeoAssetId, 10);
             var result = _emulator.Execute(Operations.MintTokens).GetBoolean();
             Console.WriteLine($"Buy result: {result}");
@@ -372,6 +373,7 @@ namespace Crowdsale.Tests
             var tokensToMint = neoToSend * Rate * DecimalsMultiplier;
             var tokensToTransfer = new BigInteger(7);
             
+            _emulator.timestamp = StartTime;
             _emulator.SetTransaction(NeoAssetId, neoToSend);
             var result = _emulator.Execute(Operations.MintTokens).GetBoolean();
             Console.WriteLine($"Buy result: {result}");
@@ -439,6 +441,7 @@ namespace Crowdsale.Tests
             var tokensToApprove = new BigInteger(5);
             var tokensToTransfer = new BigInteger(3);
             
+            _emulator.timestamp = StartTime;
             _emulator.SetTransaction(NeoAssetId, neoToSend);
             var buyResult = _emulator.Execute(Operations.MintTokens).GetBoolean();
             Console.WriteLine($"Buy result: {buyResult}");
@@ -468,6 +471,7 @@ namespace Crowdsale.Tests
             var tokensToApprove = new BigInteger(5);
             var tokensToTransfer = new BigInteger(3);
             
+            _emulator.timestamp = StartTime;
             _emulator.SetTransaction(NeoAssetId, neoToSend);
             var buyResult = _emulator.Execute(Operations.MintTokens).GetBoolean();
             Console.WriteLine($"Buy result: {buyResult}");
@@ -499,6 +503,7 @@ namespace Crowdsale.Tests
             var tokensToApprove = new BigInteger(4);
             var tokensToTransfer = new BigInteger(3);
             
+            _emulator.timestamp = StartTime;
             _emulator.SetTransaction(NeoAssetId, neoToSend);
             var buyResult = _emulator.Execute(Operations.MintTokens).GetBoolean();
             Console.WriteLine($"Buy result: {buyResult}");
