@@ -15,16 +15,13 @@ namespace Crowdsale.Tests
     public class CrowdsaleTest
     {
         private static readonly byte[] NeoAssetId = {155, 124, 255, 218, 166, 116, 190, 174, 15, 147, 14, 190, 96, 133, 175, 144, 147, 229, 254, 86, 179, 74, 92, 34, 12, 205, 207, 110, 252, 51, 111, 197};
-        private readonly byte[][] _scriptHashes = new[]
-        {
-            "D_OWNER",
-            "AZCcft1uYtmZXxzHPr5tY7L6M85zG7Dsrv",
-            "AWC97WM2rSfARUFdUiUY2DoWMm6o2Jehoq",
-        }.Select(a => a.GetScriptHashFromAddress()).ToArray();
+        private byte[][] _scriptHashes;
 
         private static Blockchain _chain;
         private static Emulator _emulator;
         private static Account _owner;
+        private static Account _account1;
+        private static Account _account2;
         
         private static readonly BigInteger Rate = new BigInteger(D_RATE);
         private static readonly BigInteger HardCapNeo = new BigInteger(D_HARD_CAP_NEO);
@@ -38,21 +35,43 @@ namespace Crowdsale.Tests
             _chain = new Blockchain();
             _emulator = new Emulator(_chain);
             _owner = _chain.DeployContract("owner", File.ReadAllBytes(TestHelper.CrowdsaleContractFilePath));
+            
+            _chain.CreateAddress("account1");
+            _account1 = _chain.FindAddressByName("account1");
+            _chain.CreateAddress("account2");
+            _account2 = _chain.FindAddressByName("account2");
+            
             _emulator.SetExecutingAccount(_owner);
             Runtime.invokerKeys = _owner.keys;
+
+            _scriptHashes = new[] {_owner, _account1, _account2}
+                .Select(a => a.keys.address.AddressToScriptHash())
+                .ToArray();
         }
 
-        private void ExecuteInit()
+        private static void ExecuteInitWithoutTransferringOwnership()
         {
             var initResult = _emulator.Execute(Operations.Init).GetBoolean();
             Console.WriteLine($"Init result: {initResult}");
             Assert.IsTrue(initResult);
         }
 
+        private static void ExecuteInitWithTransferringOwnership()
+        {
+            ExecuteInitWithoutTransferringOwnership();
+            _emulator.checkWitnessMode = CheckWitnessMode.AlwaysTrue;
+            var transferOwnershipResult = _emulator
+                .Execute(Operations.TransferOwnership, _owner.keys.address.AddressToScriptHash())
+                .GetBoolean();
+            _emulator.checkWitnessMode = CheckWitnessMode.Default;
+            Console.WriteLine($"TransferOwnership result: {transferOwnershipResult}");
+            Assert.IsTrue(transferOwnershipResult);
+        }
+
         [Test]
         public void T01_CheckReturnFalseWhenInvalidOperation()
         {
-            ExecuteInit();
+            ExecuteInitWithTransferringOwnership();
             var result = _emulator.Execute("invalidOperation").GetBoolean();
             Console.WriteLine($"Result: {result}");
             Assert.IsFalse(result, "Invalid operation execution result should be false");
@@ -61,7 +80,7 @@ namespace Crowdsale.Tests
         [Test]
         public void T02_CheckName()
         {
-            ExecuteInit();
+            ExecuteInitWithTransferringOwnership();
             var name = _emulator.Execute(Operations.Name).GetString();
             Console.WriteLine($"Token name: {name}");
             Assert.AreEqual("D_NAME", name);
@@ -70,7 +89,7 @@ namespace Crowdsale.Tests
         [Test]
         public void T03_CheckSymbol()
         {
-            ExecuteInit();
+            ExecuteInitWithTransferringOwnership();
             var symbol = _emulator.Execute(Operations.Symbol).GetString();
             Console.WriteLine($"Token symbol: {symbol}");
             Assert.AreEqual("D_SYMBOL", symbol);
@@ -79,7 +98,7 @@ namespace Crowdsale.Tests
         [Test]
         public void T04_CheckDecimals()
         {
-            ExecuteInit();
+            ExecuteInitWithTransferringOwnership();
             var decimals = _emulator.Execute(Operations.Decimals).GetBigInteger();
             Console.WriteLine($"Token decimals: {decimals}");
             Assert.AreEqual("D_DECIMALS", decimals.ToString());
@@ -90,16 +109,16 @@ namespace Crowdsale.Tests
         {
             var owner = _emulator.Execute(Operations.Owner).GetByteArray().ByteToHex();
             Console.WriteLine($"Owner: {owner}");
-            Assert.AreEqual(_scriptHashes[0].ByteToHex(), owner);
+            Assert.AreEqual("D_OWNER".AddressToScriptHash().ByteToHex(), owner);
         }
         
         [Test]
         public void T06_CheckOwnerAfterInit()
         {
-            ExecuteInit();
+            ExecuteInitWithoutTransferringOwnership();
             var owner = _emulator.Execute(Operations.Owner).GetByteArray().ByteToHex();
             Console.WriteLine($"Owner: {owner}");
-            Assert.AreEqual(_scriptHashes[0].ByteToHex(), owner);
+            Assert.AreEqual("D_OWNER".AddressToScriptHash().ByteToHex(), owner);
         }
 
         [Test]
@@ -113,7 +132,7 @@ namespace Crowdsale.Tests
         [Test]
         public void T08_CheckNotPausedBeforePause()
         {
-            ExecuteInit();
+            ExecuteInitWithTransferringOwnership();
             var result = _emulator.Execute(Operations.Paused).GetBoolean();
             Console.WriteLine($"Paused: {result}");
             Assert.IsFalse(result);
@@ -122,7 +141,8 @@ namespace Crowdsale.Tests
         [Test]
         public void T09_CheckPauseNotByOwner()
         {
-            ExecuteInit();
+            ExecuteInitWithTransferringOwnership();
+            Runtime.invokerKeys = _account1.keys;
             var result = _emulator.Execute(Operations.Pause).GetBoolean();
             Console.WriteLine($"Pause result: {result}");
             Assert.IsFalse(result);
@@ -131,8 +151,7 @@ namespace Crowdsale.Tests
         [Test]
         public void T10_CheckPauseByOwner()
         {
-            ExecuteInit();
-            _emulator.checkWitnessMode = CheckWitnessMode.AlwaysTrue;
+            ExecuteInitWithTransferringOwnership();
             var result = _emulator.Execute(Operations.Pause).GetBoolean();
             Console.WriteLine($"Pause result: {result}");
             Assert.IsTrue(result);
@@ -141,8 +160,7 @@ namespace Crowdsale.Tests
         [Test]
         public void T11_CheckPausedAfterPause()
         {
-            ExecuteInit();
-            _emulator.checkWitnessMode = CheckWitnessMode.AlwaysTrue;
+            ExecuteInitWithTransferringOwnership();
             var result = _emulator.Execute(Operations.Pause).GetBoolean();
             Console.WriteLine($"Pause result: {result}");
             var paused = _emulator.Execute(Operations.Paused).GetBoolean();
@@ -153,8 +171,7 @@ namespace Crowdsale.Tests
         [Test]
         public void T12_CheckUnpauseAfterPause()
         {
-            ExecuteInit();
-            _emulator.checkWitnessMode = CheckWitnessMode.AlwaysTrue;
+            ExecuteInitWithTransferringOwnership();
             var result = _emulator.Execute(Operations.Pause).GetBoolean();
             Console.WriteLine($"Pause result: {result}");
 
@@ -166,8 +183,7 @@ namespace Crowdsale.Tests
         [Test]
         public void T13_CheckNotPausedAfterUnpause()
         {
-            ExecuteInit();
-            _emulator.checkWitnessMode = CheckWitnessMode.AlwaysTrue;
+            ExecuteInitWithTransferringOwnership();
             var result = _emulator.Execute(Operations.Pause).GetBoolean();
             Console.WriteLine($"Pause result: {result}");
 
@@ -182,8 +198,7 @@ namespace Crowdsale.Tests
         [Test]
         public void T14_CheckCannotUnpauseAfterUnpause()
         {
-            ExecuteInit();
-            _emulator.checkWitnessMode = CheckWitnessMode.AlwaysTrue;
+            ExecuteInitWithTransferringOwnership();
             var result = _emulator.Execute(Operations.Pause).GetBoolean();
             Console.WriteLine($"Pause result: {result}");
 
@@ -194,16 +209,15 @@ namespace Crowdsale.Tests
             Console.WriteLine($"Unpause result: {secondUnpauseResult}");
             Assert.IsFalse(secondUnpauseResult);
         }
-        
+
         [Test]
         public void T15_CheckCannotUnpauseNotByOwner()
         {
-            ExecuteInit();
-            _emulator.checkWitnessMode = CheckWitnessMode.AlwaysTrue;
+            ExecuteInitWithTransferringOwnership();
             var result = _emulator.Execute(Operations.Pause).GetBoolean();
             Console.WriteLine($"Pause result: {result}");
 
-            _emulator.checkWitnessMode = CheckWitnessMode.AlwaysFalse;
+            Runtime.invokerKeys = _account1.keys;
             var unpauseResult = _emulator.Execute(Operations.Unpause).GetBoolean();
             Console.WriteLine($"Unpause result: {unpauseResult}");
             Assert.IsFalse(unpauseResult);
@@ -212,8 +226,7 @@ namespace Crowdsale.Tests
         [Test]
         public void T16_CheckTransferOwnership()
         {
-            ExecuteInit();
-            _emulator.checkWitnessMode = CheckWitnessMode.AlwaysTrue;
+            ExecuteInitWithTransferringOwnership();
             var transferOwnershipResult = _emulator
                 .Execute(Operations.TransferOwnership, _scriptHashes[1])
                 .GetBoolean();
@@ -228,7 +241,7 @@ namespace Crowdsale.Tests
         [Test]
         public void T17_CheckSimpleBuy()
         {
-            ExecuteInit();
+            ExecuteInitWithoutTransferringOwnership();
 
             _emulator.timestamp = StartTime;
             var buyerScriptHash = _owner.keys.address.AddressToScriptHash();
@@ -249,7 +262,7 @@ namespace Crowdsale.Tests
         [Test]
         public void T18_CheckBuyHardCap()
         {
-            ExecuteInit();
+            ExecuteInitWithoutTransferringOwnership();
 
             _emulator.timestamp = StartTime;
             var buyerScriptHash = _owner.keys.address.AddressToScriptHash();
@@ -270,7 +283,7 @@ namespace Crowdsale.Tests
         [Test]
         public void T19_CheckBuyMoreHardCapNotAllowed()
         {
-            ExecuteInit();
+            ExecuteInitWithoutTransferringOwnership();
 
             _emulator.timestamp = StartTime;
             var buyerScriptHash = _owner.keys.address.AddressToScriptHash();
@@ -291,7 +304,7 @@ namespace Crowdsale.Tests
         [Test]
         public void T20_CheckBuyNotAllowedAfterHardCapReached()
         {
-            ExecuteInit();
+            ExecuteInitWithoutTransferringOwnership();
 
             _emulator.timestamp = StartTime;
             var buyerScriptHash = _owner.keys.address.AddressToScriptHash();
@@ -316,7 +329,7 @@ namespace Crowdsale.Tests
         [Test]
         public void T21_CheckBuyNotAllowedBeforeCrowdsaleStart()
         {
-            ExecuteInit();
+            ExecuteInitWithoutTransferringOwnership();
             _emulator.timestamp = StartTime - 1;
             _emulator.SetTransaction(NeoAssetId, 1);
             var buyResult = _emulator.Execute(Operations.MintTokens).GetBoolean();
@@ -327,12 +340,270 @@ namespace Crowdsale.Tests
         [Test]
         public void T22_CheckBuyNotAllowedAfterCrowdsaleEnd()
         {
-            ExecuteInit();
+            ExecuteInitWithoutTransferringOwnership();
             _emulator.timestamp = EndTime + 1;
             _emulator.SetTransaction(NeoAssetId, 1);
             var buyResult = _emulator.Execute(Operations.MintTokens).GetBoolean();
             Console.WriteLine($"Buy result: {buyResult}");
             Assert.IsFalse(buyResult);
         }
+
+        #if !defined(D_CONTINUE_MINTING) || D_CONTINUE_MINTING
+        [Test]
+        public void T23_CheckTransfer()
+        {
+            ExecuteInitWithTransferringOwnership();
+            _emulator.SetTransaction(NeoAssetId, 10);
+            var result = _emulator.Execute(Operations.MintTokens).GetBoolean();
+            Console.WriteLine($"Buy result: {result}");
+            
+            var transferResult = _emulator
+                .Execute(Operations.Transfer, _scriptHashes[0], _scriptHashes[1], 5)
+                .GetBoolean();
+            Console.WriteLine($"Transfer result: {transferResult}");
+            Assert.IsTrue(transferResult);
+        }
+        #endif
+
+        [Test]
+        public void T24_CheckBalanceAfterTransfer()
+        {
+            var neoToSend = new BigInteger(10);
+            var tokensToMint = neoToSend * Rate * DecimalsMultiplier;
+            var tokensToTransfer = new BigInteger(7);
+            
+            _emulator.SetTransaction(NeoAssetId, neoToSend);
+            var result = _emulator.Execute(Operations.MintTokens).GetBoolean();
+            Console.WriteLine($"Buy result: {result}");
+            
+            var transferResult = _emulator
+                .Execute(Operations.Transfer, _scriptHashes[0], _scriptHashes[1], tokensToTransfer)
+                .GetBoolean();
+            Console.WriteLine($"Transfer result: {transferResult}");
+            
+            var balanceFrom = _emulator.Execute(Operations.BalanceOf, _scriptHashes[0]).GetBigInteger();
+            Console.WriteLine($"Sender balance: {balanceFrom}");
+
+            var balanceTo = _emulator.Execute(Operations.BalanceOf, _scriptHashes[1]).GetBigInteger();
+            Console.WriteLine($"Recepient balance: {balanceTo}");
+            
+            Assert.AreEqual(tokensToMint - tokensToTransfer, balanceFrom);
+            Assert.AreEqual(tokensToTransfer, balanceTo);
+        }
+
+        [Test]
+        public void T25_CheckApprove()
+        {
+            ExecuteInitWithTransferringOwnership();
+            var result = _emulator
+                .Execute(Operations.Approve, _scriptHashes[0], _scriptHashes[1], 5)
+                .GetBoolean();
+            Console.WriteLine($"Approve result: {result}");
+            Assert.IsTrue(result);
+        }
+
+        [Test]
+        public void T26_CheckApproveNotByOriginator()
+        {
+            ExecuteInitWithTransferringOwnership();
+            Runtime.invokerKeys = _account1.keys;
+            var result = _emulator
+                .Execute(Operations.Approve, _scriptHashes[0], _scriptHashes[1], 5)
+                .GetBoolean();
+            Console.WriteLine($"Approve result: {result}");
+            Assert.IsFalse(result);
+        }
+
+        [Test]
+        public void T27_CheckAllowanceAfterApprove()
+        {
+            ExecuteInitWithTransferringOwnership();
+            var tokensToApprove = new BigInteger(5);
+
+            var approveResult = _emulator
+                .Execute(Operations.Approve, _scriptHashes[0], _scriptHashes[1], tokensToApprove)
+                .GetBoolean();
+            Console.WriteLine($"Approve result: {approveResult}");
+            var allowance = _emulator.Execute(Operations.Allowance, _scriptHashes[0], _scriptHashes[1]).GetBigInteger();
+            Console.WriteLine($"Allowance: {allowance}");
+            Assert.AreEqual(tokensToApprove, allowance);
+        }
+
+        #if !defined(D_CONTINUE_MINTING) || D_CONTINUE_MINTING
+        [Test]
+        public void T28_CheckMintAndApproveAndTransferFrom()
+        {
+            ExecuteInitWithTransferringOwnership();
+            var neoToSend = new BigInteger(5);
+            var tokensToMint = neoToSend * Rate * DecimalsMultiplier;
+            var tokensToApprove = new BigInteger(5);
+            var tokensToTransfer = new BigInteger(3);
+            
+            _emulator.SetTransaction(NeoAssetId, neoToSend);
+            var buyResult = _emulator.Execute(Operations.MintTokens).GetBoolean();
+            Console.WriteLine($"Buy result: {buyResult}");
+            
+            var approveResult = _emulator
+                .Execute(Operations.Approve, _scriptHashes[0], _scriptHashes[1], tokensToApprove)
+                .GetBoolean();
+            Console.WriteLine($"Approve result: {approveResult}");
+            
+            Runtime.invokerKeys = _account1.keys;
+            var transferResult = _emulator
+                .Execute(Operations.TransferFrom, _scriptHashes[1], _scriptHashes[0], _scriptHashes[2],
+                    tokensToTransfer)
+                .GetBoolean();
+            Console.WriteLine($"TransferFrom result: {transferResult}");
+            Assert.IsTrue(transferResult);
+        }
+        #endif
+
+        #if !defined(D_CONTINUE_MINTING) || D_CONTINUE_MINTING
+        [Test]
+        public void T29_CheckAllowedAfterTransferFrom()
+        {
+            ExecuteInitWithTransferringOwnership();
+            var neoToSend = new BigInteger(5);
+            var tokensToMint = neoToSend * Rate * DecimalsMultiplier;
+            var tokensToApprove = new BigInteger(5);
+            var tokensToTransfer = new BigInteger(3);
+            
+            _emulator.SetTransaction(NeoAssetId, neoToSend);
+            var buyResult = _emulator.Execute(Operations.MintTokens).GetBoolean();
+            Console.WriteLine($"Buy result: {buyResult}");
+            
+            var approveResult = _emulator
+                .Execute(Operations.Approve, _scriptHashes[0], _scriptHashes[1], tokensToApprove)
+                .GetBoolean();
+            Console.WriteLine($"Approve result: {approveResult}");
+            
+            Runtime.invokerKeys = _account1.keys;
+            var transferResult = _emulator
+                .Execute(Operations.TransferFrom, _scriptHashes[1], _scriptHashes[0], _scriptHashes[2],
+                    tokensToTransfer)
+                .GetBoolean();
+            Console.WriteLine($"TransferFrom result: {transferResult}");
+            
+            var allowance = _emulator.Execute(Operations.Allowance, _scriptHashes[0], _scriptHashes[1]).GetBigInteger();
+            Console.WriteLine($"Allowance: {allowance}");
+            Assert.AreEqual(tokensToApprove - tokensToTransfer, allowance);
+        }
+        #endif
+
+        [Test]
+        public void T30_CheckBalancesAfterTransferFrom()
+        {
+            ExecuteInitWithTransferringOwnership();
+            var neoToSend = new BigInteger(5);
+            var tokensToMint = neoToSend * Rate * DecimalsMultiplier;
+            var tokensToApprove = new BigInteger(4);
+            var tokensToTransfer = new BigInteger(3);
+            
+            _emulator.SetTransaction(NeoAssetId, neoToSend);
+            var buyResult = _emulator.Execute(Operations.MintTokens).GetBoolean();
+            Console.WriteLine($"Buy result: {buyResult}");
+            
+            var approveResult = _emulator
+                .Execute(Operations.Approve, _scriptHashes[0], _scriptHashes[1], tokensToApprove)
+                .GetBoolean();
+            Console.WriteLine($"Approve result: {approveResult}");
+            
+            Runtime.invokerKeys = _account1.keys;
+            var transferResult = _emulator
+                .Execute(Operations.TransferFrom, _scriptHashes[1], _scriptHashes[0], _scriptHashes[2],
+                    tokensToTransfer)
+                .GetBoolean();
+            Console.WriteLine($"TransferFrom result: {transferResult}");
+            
+            var balanceFrom = _emulator.Execute(Operations.BalanceOf, _scriptHashes[0]).GetBigInteger();
+            Console.WriteLine($"Sender balance: {balanceFrom}");
+            
+            var balanceTo = _emulator.Execute(Operations.BalanceOf, _scriptHashes[2]).GetBigInteger();
+            Console.WriteLine($"Recepient balance: {balanceTo}");
+            
+            Assert.AreEqual(tokensToMint - tokensToTransfer, balanceFrom);
+            Assert.AreEqual(tokensToTransfer, balanceTo);
+        }
+
+        [Test]
+        public void T31_CheckApproveAndTransferFromNotByOriginator()
+        {
+            ExecuteInitWithTransferringOwnership();
+            var approveResult = _emulator
+                .Execute(Operations.Approve, _scriptHashes[0], _scriptHashes[1], 5)
+                .GetBoolean();
+            Console.WriteLine($"Approve result: {approveResult}");
+            
+            Runtime.invokerKeys = _account1.keys;
+            var transferResult = _emulator
+                .Execute(Operations.TransferFrom, _scriptHashes[1], _scriptHashes[0], _scriptHashes[2], 5)
+                .GetBoolean();
+            Console.WriteLine($"TransferFrom result: {transferResult}");
+            Assert.IsFalse(transferResult);
+        }
+
+        #if D_PREMINT_COUNT > 0
+        private readonly string[] _addresses = {
+            #ifdef D_PREMINT_ADDRESS_0
+            "D_PREMINT_ADDRESS_0",
+            #endif
+            #ifdef D_PREMINT_ADDRESS_1
+            "D_PREMINT_ADDRESS_1",
+            #endif
+            #ifdef D_PREMINT_ADDRESS_2
+            "D_PREMINT_ADDRESS_2",
+            #endif
+        };
+
+        private readonly BigInteger[] _amounts = {
+            #ifdef D_PREMINT_AMOUNT_0
+            new BigInteger(new byte[] {D_PREMINT_AMOUNT_0}),
+            #endif
+            #ifdef D_PREMINT_AMOUNT_1
+            new BigInteger(new byte[] {D_PREMINT_AMOUNT_1}),
+            #endif
+            #ifdef D_PREMINT_AMOUNT_2
+            new BigInteger(new byte[] {D_PREMINT_AMOUNT_2}),
+            #endif
+        };
+
+        [Test]
+        public void T32_CheckPremintedBalances()
+        {
+            ExecuteInitWithTransferringOwnership();
+            
+            var addressesToAmounts = new Dictionary<string, BigInteger>();
+            for (var i = 0; i < _addresses.Length; i++)
+            {
+                addressesToAmounts[_addresses[i]] = addressesToAmounts.ContainsKey(_addresses[i])
+                    ? addressesToAmounts[_addresses[i]] + _amounts[i]
+                    : _amounts[i];
+            }
+            
+            var balances = addressesToAmounts.Keys
+                .Select(a => _emulator.Execute(Operations.BalanceOf, a.GetScriptHashFromAddress()).GetBigInteger())
+                .ToArray();
+                    
+            var addressesToBalances = new Dictionary<string, BigInteger>();
+            var j = 0;
+            foreach (var a in addressesToAmounts.Keys)
+            {
+                addressesToBalances[a] = balances[j++];
+            }
+            
+            foreach (var key in addressesToAmounts.Keys)
+            {
+                Console.WriteLine($"Premint amount: {addressesToAmounts[key]}");
+                Console.WriteLine($"Premint balance: {addressesToBalances[key]}");
+                Assert.AreEqual(addressesToAmounts[key], addressesToBalances[key]);
+            }
+            
+            var calculatedTotalSupply = BigInteger.Zero;
+            _amounts.ToList().ForEach(a => calculatedTotalSupply += a);
+            var realTotalSupply = _emulator.Execute(Operations.TotalSupply).GetBigInteger();
+            Console.WriteLine($"Total supply: {realTotalSupply}");
+            Assert.AreEqual(calculatedTotalSupply, realTotalSupply, "TotalSupply should be equals");
+        }
+        #endif
     }
 }
