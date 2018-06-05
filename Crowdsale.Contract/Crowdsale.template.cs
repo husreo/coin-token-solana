@@ -17,6 +17,7 @@ namespace Crowdsale.Contract
         
         // ICO Settings
         private static readonly byte[] NeoAssetId = {155, 124, 255, 218, 166, 116, 190, 174, 15, 147, 14, 190, 96, 133, 175, 144, 147, 229, 254, 86, 179, 74, 92, 34, 12, 205, 207, 110, 252, 51, 111, 197};
+        private static readonly BigInteger NeoDecimalsMultiplier = 100000000;
         private static readonly BigInteger HardCapNeo = new BigInteger(D_HARD_CAP_NEO);
         private static readonly BigInteger Rate = new BigInteger(D_RATE);
         private static readonly int StartTime = D_START_TIME;
@@ -335,7 +336,8 @@ namespace Crowdsale.Contract
             }
 
             _Mint(sender, tokens);
-            Storage.Put(Storage.CurrentContext, Constants.NeoRaised, NeoRaised() + contributeValue);
+            Storage.Put(Storage.CurrentContext, 
+                Constants.NeoRaised, (NeoRaised() + contributeValue) / NeoDecimalsMultiplier);
             TokenPurchase(sender, contributeValue, tokens);
             return true;
         }
@@ -348,7 +350,7 @@ namespace Crowdsale.Contract
         //whether over contribute capacity, you can get the token amount
         private static BigInteger GetTokensCount(byte[] sender, BigInteger value)
         {
-            BigInteger availableNeo = HardCapNeo - NeoRaised();
+            BigInteger availableNeo = (HardCapNeo - NeoRaised()) * NeoDecimalsMultiplier;
             if (availableNeo <= 0)
             {
                 Refund(sender, value);
@@ -361,8 +363,8 @@ namespace Crowdsale.Contract
                 value = availableNeo;
             }
             
-            ulong decimalsMultiplier = Pow(10, Decimals());
-            return value * Rate * decimalsMultiplier;
+            ulong tokenDecimalsMultiplier = Pow(10, Decimals());
+            return value / NeoDecimalsMultiplier * Rate * tokenDecimalsMultiplier;
         }
 
         // check whether asset is neo and get sender script hash
