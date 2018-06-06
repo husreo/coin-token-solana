@@ -76,10 +76,12 @@ namespace Crowdsale.Contract
         {
             if (Runtime.Trigger == TriggerType.Verification)
             {
-                return true;
+                // if MintTokens operation
+                if (operation.AsByteArray() == new byte[] { }) return true;
+                // another operations, ex. funds withdrawal
+                return Runtime.CheckWitness(Owner());
             }
-
-            if (Runtime.Trigger == TriggerType.Application)
+            else if (Runtime.Trigger == TriggerType.Application)
             {
                 if (operation == Operations.MintTokens) return MintTokens();
                 if (operation == Operations.Init) return Init();
