@@ -54,14 +54,14 @@ namespace NEP5.Contract
             if (operation == Operations.Decimals) return Decimals();
             if (operation == Operations.BalanceOf)
             {
-                if (args.Length != 1) return false;
+                if (args.Length != 1) return NotifyErrorAndReturnFalse("Arguments count must be 1");
                 var account = (byte[]) args[0];
                 return BalanceOf(account);
             }
 
             if (operation == Operations.Transfer)
             {
-                if (args.Length != 3) return false;
+                if (args.Length != 3) return NotifyErrorAndReturnFalse("Arguments count must be 3");
                 var from = (byte[]) args[0];
                 var to = (byte[]) args[1];
                 var value = (BigInteger) args[2];
@@ -71,7 +71,7 @@ namespace NEP5.Contract
             if (operation == Operations.TotalSupply) return TotalSupply();
             if (operation == Operations.Allowance)
             {
-                if (args.Length != 2) return false;
+                if (args.Length != 2) return NotifyErrorAndReturnFalse("Arguments count must be 2");
                 var from = (byte[]) args[0];
                 var to = (byte[]) args[1];
                 return Allowance(from, to);
@@ -79,7 +79,7 @@ namespace NEP5.Contract
 
             if (operation == Operations.Approve)
             {
-                if (args.Length != 3) return false;
+                if (args.Length != 3) return NotifyErrorAndReturnFalse("Arguments count must be 3");
                 var originator = (byte[]) args[0];
                 var to = (byte[]) args[1];
                 var value = (BigInteger) args[2];
@@ -88,7 +88,7 @@ namespace NEP5.Contract
 
             if (operation == Operations.TransferFrom)
             {
-                if (args.Length != 4) return false;
+                if (args.Length != 4) return NotifyErrorAndReturnFalse("Arguments count must be 4");
                 var originator = (byte[]) args[0];
                 var from = (byte[]) args[1];
                 var to = (byte[]) args[2];
@@ -98,7 +98,7 @@ namespace NEP5.Contract
 
             if (operation == Operations.Mint)
             {
-                if (args.Length != 2) return false;
+                if (args.Length != 2) return NotifyErrorAndReturnFalse("Arguments count must be 2");
                 var to = (byte[]) args[0];
                 var value = (BigInteger) args[1];
                 return Mint(to, value);
@@ -111,12 +111,12 @@ namespace NEP5.Contract
             if (operation == Operations.Unpause) return Unpause();
             if (operation == Operations.TransferOwnership)
             {
-                if (args.Length != 1) return false;
+                if (args.Length != 1) return NotifyErrorAndReturnFalse("Arguments count must be 1");
                 var target = (byte[]) args[0];
                 return TransferOwnership(target);
             }
 
-            return false;
+            return NotifyErrorAndReturnFalse("Unknown operation");
         }
 
         public static byte[] Owner()
@@ -126,7 +126,10 @@ namespace NEP5.Contract
         
         public static bool Init()
         {
-            if (Storage.Get(Storage.CurrentContext, Constants.Inited).AsString() == Constants.Inited) return false;
+            if (Storage.Get(Storage.CurrentContext, Constants.Inited).AsString() == Constants.Inited)
+            {
+                return NotifyErrorAndReturnFalse("Already initialized");
+            }
             bool result = true;
             #if D_PREMINT_COUNT > 0
             #ifdef D_PREMINT_ADDRESS_0
@@ -156,11 +159,14 @@ namespace NEP5.Contract
 
         public static bool Transfer(byte[] from, byte[] to, BigInteger value)
         {
-            if (value <= 0) return false;
-            if (!Runtime.CheckWitness(from)) return false;
-            if (to.Length != 20) return false;
+            if (value <= 0) return NotifyErrorAndReturnFalse("Value should be positive");
+            if (!Runtime.CheckWitness(from))
+            {
+                return NotifyErrorAndReturnFalse("Owner of the wallet isn't associated with this invoke");
+            }
+            if (to.Length != 20) return NotifyErrorAndReturnFalse("To value must be script hash (size of 20)");
             BigInteger fromBalance = Storage.Get(Storage.CurrentContext, from).AsBigInteger();
-            if (fromBalance < value) return false;
+            if (fromBalance < value) return NotifyErrorAndReturnFalse("Sender doesn't have enough tokens");
             if (from == to) return true;
             if (fromBalance == value)
             {
@@ -190,22 +196,32 @@ namespace NEP5.Contract
 
         public static bool Approve(byte[] originator, byte[] to, BigInteger value)
         {
-            if (!Runtime.CheckWitness(originator)) return false;
-            if (to.Length != 20) return false;
+            if (!Runtime.CheckWitness(originator))
+            {
+                return NotifyErrorAndReturnFalse("Originator isn't associated with this invoke");
+            }
+            if (to.Length != 20) return NotifyErrorAndReturnFalse("To value must be script hash (size of 20)");
             Storage.Put(Storage.CurrentContext, originator.Concat(to), value);
             return true;
         }
 
         public static bool TransferFrom(byte[] originator, byte[] from, byte[] to, BigInteger value)
         {
-            if (!Runtime.CheckWitness(originator)) return false;
-            if (from.Length != 20) return false;
-            if (to.Length != 20) return false;
+            if (!Runtime.CheckWitness(originator))
+            {
+                return NotifyErrorAndReturnFalse("Originator isn't associated with this invoke");
+            }
+            if (from.Length != 20) return NotifyErrorAndReturnFalse("From value must be script hash (size of 20)");
+            if (to.Length != 20) return NotifyErrorAndReturnFalse("To value must be script hash (size of 20)");;
             byte[] key = from.Concat(originator);
             BigInteger allowed = Allowance(from, originator);
             BigInteger fromBalance = BalanceOf(from);
             BigInteger toBalance = BalanceOf(to);
-            if (allowed < value || fromBalance < value) return false;
+            if (allowed < value)
+            {
+                return NotifyErrorAndReturnFalse("You are trying to send more than you are allowed to");
+            }
+            if (fromBalance < value) return NotifyErrorAndReturnFalse("Owner doesn't have enough tokens");
             if (allowed == value)
             {
                 Storage.Delete(Storage.CurrentContext, key);
@@ -232,15 +248,18 @@ namespace NEP5.Contract
 
         public static bool Mint(byte[] to, BigInteger value)
         {
-            if (!Runtime.CheckWitness(Owner())) return false;
-            if (MintingFinished()) return false;
+            if (!Runtime.CheckWitness(Owner()))
+            {
+                return NotifyErrorAndReturnFalse("You are not the owner of the contract");
+            }
+            if (MintingFinished()) return NotifyErrorAndReturnFalse("Minting is finished");
             return _Mint(to, value);
         }
 
         private static bool _Mint(byte[] to, BigInteger value)
         {
-            if (to.Length != 20) return false;
-            if (value <= 0) return false;
+            if (to.Length != 20) return NotifyErrorAndReturnFalse("To value must be script hash (size of 20)");
+            if (value <= 0) return NotifyErrorAndReturnFalse("Value should be positive");
             Storage.Put(Storage.CurrentContext, to, BalanceOf(to) + value);
             Storage.Put(Storage.CurrentContext, Constants.TotalSupply, TotalSupply() + value);
             Minted(to, value);
@@ -250,13 +269,16 @@ namespace NEP5.Contract
 
         public static bool FinishMinting()
         {
-            if (!Runtime.CheckWitness(Owner())) return false;
+            if (!Runtime.CheckWitness(Owner()))
+            {
+                return NotifyErrorAndReturnFalse("You are not the owner of the contract");
+            }
             return _FinishMinting();
         }
 
         private static bool _FinishMinting()
-        {   
-            if (MintingFinished()) return false;
+        {
+            if (MintingFinished()) return NotifyErrorAndReturnFalse("Minting already finished");
             Storage.Put(Storage.CurrentContext, Constants.MintingFinished, Constants.MintingFinished);
             MintFinished();
             return true;
@@ -264,13 +286,17 @@ namespace NEP5.Contract
 
         public static bool MintingFinished()
         {
-            return Storage.Get(Storage.CurrentContext, Constants.MintingFinished).AsString() == Constants.MintingFinished;
+            byte[] isMintingFinished = Storage.Get(Storage.CurrentContext, Constants.MintingFinished);
+            return isMintingFinished.AsString() == Constants.MintingFinished;
         }
         
         public static bool Pause()
         {
-            if (!Runtime.CheckWitness(Owner())) return false;
-            if (Paused()) return false;
+            if (!Runtime.CheckWitness(Owner()))
+            {
+                return NotifyErrorAndReturnFalse("You are not the owner of the contract");
+            }
+            if (Paused()) return NotifyErrorAndReturnFalse("Transfers are paused");
             Storage.Put(Storage.CurrentContext, Constants.Paused, Constants.Paused);
             return true;
         }
@@ -282,19 +308,31 @@ namespace NEP5.Contract
         
         public static bool Unpause()
         {
-            if (!Runtime.CheckWitness(Owner())) return false;
-            if (!Paused()) return false;
+            if (!Runtime.CheckWitness(Owner()))
+            {
+                return NotifyErrorAndReturnFalse("You are not the owner of the contract");
+            }
+            if (!Paused()) return NotifyErrorAndReturnFalse("Transfers are not paused");
             Storage.Delete(Storage.CurrentContext, Constants.Paused);
             return true;
         }
         
         public static bool TransferOwnership(byte[] target)
         {
-            if (!Runtime.CheckWitness(Owner())) return false;
-            if (target.Length != 20) return false;
+            if (!Runtime.CheckWitness(Owner()))
+            {
+                return NotifyErrorAndReturnFalse("You are not the owner of the contract");
+            }
+            if (target.Length != 20) return NotifyErrorAndReturnFalse("Target value must be script hash (size of 20)");
             Storage.Put(Storage.CurrentContext, Constants.Owner, target);
             OwnershipTransferred(target);
             return true;
+        }
+        
+        private static bool NotifyErrorAndReturnFalse(string error)
+        {
+            Runtime.Notify(error);
+            return false;
         }
     }
 }
