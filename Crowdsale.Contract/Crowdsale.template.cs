@@ -201,6 +201,7 @@ namespace Crowdsale.Contract
             {
                 return NotifyErrorAndReturnFalse("Owner of the wallet isn't associated with this invoke");
             }
+            if (Paused()) return NotifyErrorAndReturnFalse("Token transfer is paused");
             if (to.Length != 20) return NotifyErrorAndReturnFalse("To value must be script hash (size of 20)");
             BigInteger fromBalance = Storage.Get(Storage.CurrentContext, from).AsBigInteger();
             if (fromBalance < value) return NotifyErrorAndReturnFalse("Sender doesn't have enough tokens");
@@ -259,6 +260,7 @@ namespace Crowdsale.Contract
             {
                 return NotifyErrorAndReturnFalse("Originator isn't associated with this invoke");
             }
+            if (Paused()) return NotifyErrorAndReturnFalse("Token transfer is paused");
             if (from.Length != 20) return NotifyErrorAndReturnFalse("From value must be script hash (size of 20)");
             if (to.Length != 20) return NotifyErrorAndReturnFalse("To value must be script hash (size of 20)");;
             byte[] key = from.Concat(originator);

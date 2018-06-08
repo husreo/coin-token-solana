@@ -445,7 +445,54 @@ namespace NEP5.Tests
         #endif
 
         [Test]
-        public void T30_CheckBalancesAfterTransferFrom()
+        public void T30_CheckPauseAndTransfer()
+        {
+            var tokensToMint = new BigInteger(10);
+            var tokensToTransfer = new BigInteger(7);
+
+            ExecuteInitWithTransferringOwnership();
+            var result = _emulator.Execute(Operations.Mint, _scriptHashes[0], tokensToMint).GetBoolean();
+            Console.WriteLine($"Mint result: {result}");
+
+            var pauseResult = _emulator.Execute(Operations.Pause).GetBoolean();
+            Console.WriteLine($"Pause result: {pauseResult}");
+            
+            var transferResult = _emulator
+                .Execute(Operations.Transfer, _scriptHashes[0], _scriptHashes[1], tokensToTransfer)
+                .GetBoolean();
+            Console.WriteLine($"Transfer result: {transferResult}");
+            Assert.IsFalse(transferResult);
+        }
+
+        [Test]
+        public void T31_CheckPauseAndTransferFrom()
+        {
+            var tokensToMint = new BigInteger(5);
+            var tokensToApprove = new BigInteger(5);
+            var tokensToTransfer = new BigInteger(3);
+
+            var mintResult = _emulator.Execute(Operations.Mint, _scriptHashes[0], tokensToMint).GetBoolean();
+            Console.WriteLine($"Mint result: {mintResult}");
+
+            var approveResult = _emulator
+                .Execute(Operations.Approve, _scriptHashes[0], _scriptHashes[1], tokensToApprove)
+                .GetBoolean();
+            Console.WriteLine($"Approve result: {approveResult}");
+            
+            var pauseResult = _emulator.Execute(Operations.Pause).GetBoolean();
+            Console.WriteLine($"Pause result: {pauseResult}");
+            
+            Runtime.invokerKeys = _account1.keys;
+            var transferResult = _emulator
+                .Execute(Operations.TransferFrom, _scriptHashes[1], _scriptHashes[0], _scriptHashes[2],
+                    tokensToTransfer)
+                .GetBoolean();
+            Console.WriteLine($"TransferFrom result: {transferResult}");
+            Assert.IsFalse(transferResult);
+        }
+
+        [Test]
+        public void T32_CheckBalancesAfterTransferFrom()
         {
             ExecuteInitWithTransferringOwnership();
             var tokensToMint = new BigInteger(5);
@@ -478,7 +525,7 @@ namespace NEP5.Tests
         }
 
         [Test]
-        public void T31_CheckApproveAndTransferFromNotByOriginator()
+        public void T33_CheckApproveAndTransferFromNotByOriginator()
         {
             ExecuteInitWithTransferringOwnership();
             var approveResult = _emulator
@@ -520,7 +567,7 @@ namespace NEP5.Tests
         };
 
         [Test]
-        public void T32_CheckPremintedBalances()
+        public void T34_CheckPremintedBalances()
         {
             ExecuteInitWithTransferringOwnership();
             
@@ -559,7 +606,7 @@ namespace NEP5.Tests
         #endif
 
         [Test]
-        public void T33_CheckTransferOwnership()
+        public void T35_CheckTransferOwnership()
         {
             ExecuteInitWithTransferringOwnership();
             var transferOwnershipResult = _emulator
