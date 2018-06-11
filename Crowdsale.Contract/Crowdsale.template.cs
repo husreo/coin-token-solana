@@ -77,7 +77,7 @@ namespace Crowdsale.Contract
             if (Runtime.Trigger == TriggerType.Verification)
             {
                 // if MintTokens operation
-                if (operation.AsByteArray() == new byte[] { }) return true;
+                if (operation.AsByteArray().Length == 0) return true;
                 // another operations, ex. funds withdrawal
                 return Runtime.CheckWitness(Owner());
             }
