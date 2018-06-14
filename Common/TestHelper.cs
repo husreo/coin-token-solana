@@ -1,19 +1,18 @@
-﻿using System.IO;
-using System.Linq;
+﻿using System.Linq;
 using System.Numerics;
-using Neo.VM;
 using LunarParser;
 using Neo.Emulation;
+using Neo.VM;
 using NUnit.Framework;
 
-namespace NEP5.Contract.Tests
+namespace Common
 {
-    internal static class TestHelper
+    public static class TestHelper
     {
-        private const string Nep5ContractFilePath =
+        public const string Nep5ContractFilePath =
             "../../../../NEP5.Contract/bin/Release/netcoreapp2.0/publish/NEP5.Contract.avm";
-
-        public static readonly byte[] Avm = File.ReadAllBytes(Nep5ContractFilePath);
+        public const string CrowdsaleContractFilePath =
+            "../../../../Crowdsale.Contract/bin/Release/netcoreapp2.0/publish/Crowdsale.Contract.avm";
 
         public static StackItem Execute(this Emulator emulator, string operation, params object[] args)
         {

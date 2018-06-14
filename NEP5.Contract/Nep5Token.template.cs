@@ -1,9 +1,8 @@
 ﻿using Neo.SmartContract.Framework;
 using Neo.SmartContract.Framework.Services.Neo;
-using NEP5.Common;
-using System;
 using System.ComponentModel;
 using System.Numerics;
+using Common;
 
 namespace NEP5.Contract
 {
@@ -12,65 +11,112 @@ namespace NEP5.Contract
         public static string Name() => "D_NAME";
         public static string Symbol() => "D_SYMBOL";
         public static byte Decimals() => D_DECIMALS;
-        public static readonly byte[] InitialOwnerScriptHash = "D_OWNER".ToScriptHash();
+        private static readonly byte[] InitialOwnerScriptHash = "D_OWNER".ToScriptHash();
         
         #if D_PREMINT_COUNT > 0
         #ifdef D_PREMINT_ADDRESS_0
         private static readonly byte[] PremintScriptHash0 = "D_PREMINT_ADDRESS_0".ToScriptHash();
-        private static readonly BigInteger PremintAmount0 = new BigInteger(D_PREMINT_AMOUNT_0);
+        private static readonly byte[] PremintAmount0 = {D_PREMINT_AMOUNT_0};
         #endif
         #ifdef D_PREMINT_ADDRESS_1
         private static readonly byte[] PremintScriptHash1 = "D_PREMINT_ADDRESS_1".ToScriptHash();
-        private static readonly BigInteger PremintAmount1 = new BigInteger(D_PREMINT_AMOUNT_1);
+        private static readonly byte[] PremintAmount1 = {D_PREMINT_AMOUNT_1};
         #endif
         #ifdef D_PREMINT_ADDRESS_2
         private static readonly byte[] PremintScriptHash2 = "D_PREMINT_ADDRESS_2".ToScriptHash();
-        private static readonly BigInteger PremintAmount2 = new BigInteger(D_PREMINT_AMOUNT_2);
+        private static readonly byte[] PremintAmount2 = {D_PREMINT_AMOUNT_2};
         #endif
         #endif
         
-        public delegate void Action();
-        public delegate void Action<in T1>(T1 arg1);
-        public delegate void Action<in T1, in T2>(T1 arg1, T2 arg2);
-        public delegate void Action<in T1, in T2, in T3>(T1 arg1, T2 arg2, T3 arg3);
+        public static string CreationDateTime() => "__DATE__ __TIME__";
         
         [DisplayName("transfer")]
-        public static event Action<byte[], byte[], BigInteger> Transferred;
+        public static event Types.Action<byte[], byte[], BigInteger> Transferred;
         
         [DisplayName("mint")]
-        public static event Action<byte[], BigInteger> Minted;
+        public static event Types.Action<byte[], BigInteger> Minted;
         
         [DisplayName("finishMint")]
-        public static event Action MintFinished;
+        public static event Types.Action MintFinished;
         
         [DisplayName("init")]
-        public static event Action Inited;
+        public static event Types.Action Inited;
  
         [DisplayName("transferOwnership")]
-        public static event Action<byte[]> OwnershipTransferred;
+        public static event Types.Action<byte[]> OwnershipTransferred;
 
-        public static Object Main(string operation, params object[] args)
+        public static object Main(string operation, params object[] args)
         {
             if (operation == Operations.Init) return Init();
             if (operation == Operations.Owner) return Owner();
             if (operation == Operations.Name) return Name();
             if (operation == Operations.Symbol) return Symbol();
             if (operation == Operations.Decimals) return Decimals();
-            if (operation == Operations.BalanceOf) return BalanceOf((byte[]) args[0]);
-            if (operation == Operations.Transfer) return Transfer((byte[]) args[0], (byte[]) args[1], (BigInteger) args[2]);
+            if (operation == Operations.BalanceOf)
+            {
+                if (args.Length != 1) return NotifyErrorAndReturnFalse("Arguments count must be 1");
+                var account = (byte[]) args[0];
+                return BalanceOf(account);
+            }
+
+            if (operation == Operations.Transfer)
+            {
+                if (args.Length != 3) return NotifyErrorAndReturnFalse("Arguments count must be 3");
+                var from = (byte[]) args[0];
+                var to = (byte[]) args[1];
+                var value = (BigInteger) args[2];
+                return Transfer(from, to, value);
+            }
+
             if (operation == Operations.TotalSupply) return TotalSupply();
-            if (operation == Operations.Allowance) return Allowance((byte[]) args[0], (byte[]) args[1]);
-            if (operation == Operations.Approve) return Approve((byte[]) args[0], (byte[]) args[1], (BigInteger) args[2]);
-            if (operation == Operations.TransferFrom) return TransferFrom((byte[]) args[0], (byte[]) args[1], (byte[]) args[2], (BigInteger) args[3]);
-            if (operation == Operations.Mint) return Mint((byte[]) args[0], (BigInteger) args[1]);
+            if (operation == Operations.Allowance)
+            {
+                if (args.Length != 2) return NotifyErrorAndReturnFalse("Arguments count must be 2");
+                var from = (byte[]) args[0];
+                var to = (byte[]) args[1];
+                return Allowance(from, to);
+            }
+
+            if (operation == Operations.Approve)
+            {
+                if (args.Length != 3) return NotifyErrorAndReturnFalse("Arguments count must be 3");
+                var originator = (byte[]) args[0];
+                var to = (byte[]) args[1];
+                var value = (BigInteger) args[2];
+                return Approve(originator, to, value);
+            }
+
+            if (operation == Operations.TransferFrom)
+            {
+                if (args.Length != 4) return NotifyErrorAndReturnFalse("Arguments count must be 4");
+                var originator = (byte[]) args[0];
+                var from = (byte[]) args[1];
+                var to = (byte[]) args[2];
+                var value = (BigInteger) args[3];
+                return TransferFrom(originator, from, to, value);
+            }
+
+            if (operation == Operations.Mint)
+            {
+                if (args.Length != 2) return NotifyErrorAndReturnFalse("Arguments count must be 2");
+                var to = (byte[]) args[0];
+                var value = (BigInteger) args[1];
+                return Mint(to, value);
+            }
+
             if (operation == Operations.FinishMinting) return FinishMinting();
             if (operation == Operations.MintingFinished) return MintingFinished();
             if (operation == Operations.Pause) return Pause();
             if (operation == Operations.Paused) return Paused();
             if (operation == Operations.Unpause) return Unpause();
-            if (operation == Operations.TransferOwnership) return TransferOwnership((byte[]) args[0]);
+            if (operation == Operations.TransferOwnership)
+            {
+                if (args.Length != 1) return NotifyErrorAndReturnFalse("Arguments count must be 1");
+                var target = (byte[]) args[0];
+                return TransferOwnership(target);
+            }
 
-            return false;
+            return NotifyErrorAndReturnFalse("Unknown operation");
         }
 
         public static byte[] Owner()
@@ -80,17 +126,20 @@ namespace NEP5.Contract
         
         public static bool Init()
         {
-            if (Storage.Get(Storage.CurrentContext, Constants.Inited).AsString() == Constants.Inited) return false;
+            if (Storage.Get(Storage.CurrentContext, Constants.Inited).AsString() == Constants.Inited)
+            {
+                return NotifyErrorAndReturnFalse("Already initialized");
+            }
             bool result = true;
             #if D_PREMINT_COUNT > 0
             #ifdef D_PREMINT_ADDRESS_0
-            result = result && _Mint(PremintScriptHash0, PremintAmount0);
+            result = result && _Mint(PremintScriptHash0, PremintAmount0.AsBigInteger());
             #endif
             #ifdef D_PREMINT_ADDRESS_1
-            result = result && _Mint(PremintScriptHash1, PremintAmount1);
+            result = result && _Mint(PremintScriptHash1, PremintAmount1.AsBigInteger());
             #endif
             #ifdef D_PREMINT_ADDRESS_2
-            result = result && _Mint(PremintScriptHash2, PremintAmount2);
+            result = result && _Mint(PremintScriptHash2, PremintAmount2.AsBigInteger());
             #endif
             #endif
             
@@ -110,11 +159,15 @@ namespace NEP5.Contract
 
         public static bool Transfer(byte[] from, byte[] to, BigInteger value)
         {
-            if (value <= 0) return false;
-            if (!Runtime.CheckWitness(from)) return false;
-            if (to.Length != 20) return false;
+            if (value <= 0) return NotifyErrorAndReturnFalse("Value should be positive");
+            if (!Runtime.CheckWitness(from))
+            {
+                return NotifyErrorAndReturnFalse("Owner of the wallet isn't associated with this invoke");
+            }
+            if (Paused()) return NotifyErrorAndReturnFalse("Token transfer is paused");
+            if (to.Length != 20) return NotifyErrorAndReturnFalse("To value must be script hash (size of 20)");
             BigInteger fromBalance = Storage.Get(Storage.CurrentContext, from).AsBigInteger();
-            if (fromBalance < value) return false;
+            if (fromBalance < value) return NotifyErrorAndReturnFalse("Sender doesn't have enough tokens");
             if (from == to) return true;
             if (fromBalance == value)
             {
@@ -144,22 +197,33 @@ namespace NEP5.Contract
 
         public static bool Approve(byte[] originator, byte[] to, BigInteger value)
         {
-            if (!Runtime.CheckWitness(originator)) return false;
-            if (to.Length != 20) return false;
+            if (!Runtime.CheckWitness(originator))
+            {
+                return NotifyErrorAndReturnFalse("Originator isn't associated with this invoke");
+            }
+            if (to.Length != 20) return NotifyErrorAndReturnFalse("To value must be script hash (size of 20)");
             Storage.Put(Storage.CurrentContext, originator.Concat(to), value);
             return true;
         }
 
         public static bool TransferFrom(byte[] originator, byte[] from, byte[] to, BigInteger value)
         {
-            if (!Runtime.CheckWitness(originator)) return false;
-            if (from.Length != 20) return false;
-            if (to.Length != 20) return false;
+            if (!Runtime.CheckWitness(originator))
+            {
+                return NotifyErrorAndReturnFalse("Originator isn't associated with this invoke");
+            }
+            if (Paused()) return NotifyErrorAndReturnFalse("Token transfer is paused");
+            if (from.Length != 20) return NotifyErrorAndReturnFalse("From value must be script hash (size of 20)");
+            if (to.Length != 20) return NotifyErrorAndReturnFalse("To value must be script hash (size of 20)");;
             byte[] key = from.Concat(originator);
             BigInteger allowed = Allowance(from, originator);
             BigInteger fromBalance = BalanceOf(from);
             BigInteger toBalance = BalanceOf(to);
-            if (allowed < value || fromBalance < value) return false;
+            if (allowed < value)
+            {
+                return NotifyErrorAndReturnFalse("You are trying to send more than you are allowed to");
+            }
+            if (fromBalance < value) return NotifyErrorAndReturnFalse("Owner doesn't have enough tokens");
             if (allowed == value)
             {
                 Storage.Delete(Storage.CurrentContext, key);
@@ -186,15 +250,18 @@ namespace NEP5.Contract
 
         public static bool Mint(byte[] to, BigInteger value)
         {
-            if (!Runtime.CheckWitness(Owner())) return false;
-            if (MintingFinished()) return false;
+            if (!Runtime.CheckWitness(Owner()))
+            {
+                return NotifyErrorAndReturnFalse("You are not the owner of the contract");
+            }
+            if (MintingFinished()) return NotifyErrorAndReturnFalse("Minting is finished");
             return _Mint(to, value);
         }
 
         private static bool _Mint(byte[] to, BigInteger value)
         {
-            if (to.Length != 20) return false;
-            if (value <= 0) return false;
+            if (to.Length != 20) return NotifyErrorAndReturnFalse("To value must be script hash (size of 20)");
+            if (value <= 0) return NotifyErrorAndReturnFalse("Value should be positive");
             Storage.Put(Storage.CurrentContext, to, BalanceOf(to) + value);
             Storage.Put(Storage.CurrentContext, Constants.TotalSupply, TotalSupply() + value);
             Minted(to, value);
@@ -204,13 +271,16 @@ namespace NEP5.Contract
 
         public static bool FinishMinting()
         {
-            if (!Runtime.CheckWitness(Owner())) return false;
+            if (!Runtime.CheckWitness(Owner()))
+            {
+                return NotifyErrorAndReturnFalse("You are not the owner of the contract");
+            }
             return _FinishMinting();
         }
 
         private static bool _FinishMinting()
-        {   
-            if (MintingFinished()) return false;
+        {
+            if (MintingFinished()) return NotifyErrorAndReturnFalse("Minting already finished");
             Storage.Put(Storage.CurrentContext, Constants.MintingFinished, Constants.MintingFinished);
             MintFinished();
             return true;
@@ -218,13 +288,17 @@ namespace NEP5.Contract
 
         public static bool MintingFinished()
         {
-            return Storage.Get(Storage.CurrentContext, Constants.MintingFinished).AsString() == Constants.MintingFinished;
+            byte[] isMintingFinished = Storage.Get(Storage.CurrentContext, Constants.MintingFinished);
+            return isMintingFinished.AsString() == Constants.MintingFinished;
         }
         
         public static bool Pause()
         {
-            if (!Runtime.CheckWitness(Owner())) return false;
-            if (Paused()) return false;
+            if (!Runtime.CheckWitness(Owner()))
+            {
+                return NotifyErrorAndReturnFalse("You are not the owner of the contract");
+            }
+            if (Paused()) return NotifyErrorAndReturnFalse("Transfers are paused");
             Storage.Put(Storage.CurrentContext, Constants.Paused, Constants.Paused);
             return true;
         }
@@ -236,19 +310,31 @@ namespace NEP5.Contract
         
         public static bool Unpause()
         {
-            if (!Runtime.CheckWitness(Owner())) return false;
-            if (!Paused()) return false;
+            if (!Runtime.CheckWitness(Owner()))
+            {
+                return NotifyErrorAndReturnFalse("You are not the owner of the contract");
+            }
+            if (!Paused()) return NotifyErrorAndReturnFalse("Transfers are not paused");
             Storage.Delete(Storage.CurrentContext, Constants.Paused);
             return true;
         }
         
         public static bool TransferOwnership(byte[] target)
         {
-            if (!Runtime.CheckWitness(Owner())) return false;
-            if (target.Length != 20) return false;
+            if (!Runtime.CheckWitness(Owner()))
+            {
+                return NotifyErrorAndReturnFalse("You are not the owner of the contract");
+            }
+            if (target.Length != 20) return NotifyErrorAndReturnFalse("Target value must be script hash (size of 20)");
             Storage.Put(Storage.CurrentContext, Constants.Owner, target);
             OwnershipTransferred(target);
             return true;
+        }
+        
+        private static bool NotifyErrorAndReturnFalse(string error)
+        {
+            Runtime.Notify(error);
+            return false;
         }
     }
 }
