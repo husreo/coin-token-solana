@@ -546,12 +546,39 @@ namespace NEP5.Tests
         private readonly byte[] _premintScriptHashes = {D_PREMINT_SCRIPT_HASHES};
         private readonly byte[] _premintAmounts = {D_PREMINT_AMOUNTS};
 
+        public class ByteArrayComparer : IEqualityComparer<byte[]>
+        {
+            public bool Equals(byte[] left, byte[] right)
+            {
+                if (left == null || right == null)
+                {
+                    return left == right;
+                }
+
+                if (left.Length != right.Length)
+                {
+                    return false;
+                }
+
+                return !left.Where((t, i) => t != right[i]).Any();
+            }
+
+            public int GetHashCode(byte[] key)
+            {
+                if (key == null)
+                    throw new ArgumentNullException(nameof(key));
+                return key.Aggregate(0, (current, cur) => current + cur);
+            }
+        }
+
+        public static ByteArrayComparer Comparer = new ByteArrayComparer();
+    
         [Test]
         public void T34_CheckPremintedBalances()
         {
             ExecuteInitWithTransferringOwnership();
             
-            var scriptHashesToAmounts = new Dictionary<byte[], BigInteger>();
+            var scriptHashesToAmounts = new Dictionary<byte[], BigInteger>(Comparer);
             for (var i = 0; i < _premintCount; i++)
             {
                 var scriptHash = new List<byte>(_premintScriptHashes).GetRange(i * 20, 20).ToArray();
@@ -565,7 +592,7 @@ namespace NEP5.Tests
                 .Select(sh => _emulator.Execute(Operations.BalanceOf, sh).GetBigInteger())
                 .ToArray();
                     
-            var addressesToBalances = new Dictionary<byte[], BigInteger>();
+            var addressesToBalances = new Dictionary<byte[], BigInteger>(Comparer);
             var j = 0;
             foreach (var sh in scriptHashesToAmounts.Keys)
             {
