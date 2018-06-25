@@ -542,63 +542,75 @@ namespace NEP5.Tests
         }
 
         #if D_PREMINT_COUNT > 0
-        private readonly string[] _addresses = {
-            #ifdef D_PREMINT_ADDRESS_0
-            "D_PREMINT_ADDRESS_0",
-            #endif
-            #ifdef D_PREMINT_ADDRESS_1
-            "D_PREMINT_ADDRESS_1",
-            #endif
-            #ifdef D_PREMINT_ADDRESS_2
-            "D_PREMINT_ADDRESS_2",
-            #endif
-        };
+        private readonly int _premintCount = D_PREMINT_COUNT;
+        private readonly byte[] _premintScriptHashes = {D_PREMINT_SCRIPT_HASHES};
+        private readonly byte[] _premintAmounts = {D_PREMINT_AMOUNTS};
 
-        private readonly BigInteger[] _amounts = {
-            #ifdef D_PREMINT_AMOUNT_0
-            new BigInteger(new byte[] {D_PREMINT_AMOUNT_0}),
-            #endif
-            #ifdef D_PREMINT_AMOUNT_1
-            new BigInteger(new byte[] {D_PREMINT_AMOUNT_1}),
-            #endif
-            #ifdef D_PREMINT_AMOUNT_2
-            new BigInteger(new byte[] {D_PREMINT_AMOUNT_2}),
-            #endif
-        };
+        public class ByteArrayComparer : IEqualityComparer<byte[]>
+        {
+            public bool Equals(byte[] left, byte[] right)
+            {
+                if (left == null || right == null)
+                {
+                    return left == right;
+                }
 
+                if (left.Length != right.Length)
+                {
+                    return false;
+                }
+
+                return !left.Where((t, i) => t != right[i]).Any();
+            }
+
+            public int GetHashCode(byte[] key)
+            {
+                if (key == null)
+                    throw new ArgumentNullException(nameof(key));
+                return key.Aggregate(0, (current, cur) => current + cur);
+            }
+        }
+
+        public static ByteArrayComparer Comparer = new ByteArrayComparer();
+    
         [Test]
         public void T34_CheckPremintedBalances()
         {
             ExecuteInitWithTransferringOwnership();
             
-            var addressesToAmounts = new Dictionary<string, BigInteger>();
-            for (var i = 0; i < _addresses.Length; i++)
+            var scriptHashesToAmounts = new Dictionary<byte[], BigInteger>(Comparer);
+            for (var i = 0; i < _premintCount; i++)
             {
-                addressesToAmounts[_addresses[i]] = addressesToAmounts.ContainsKey(_addresses[i])
-                    ? addressesToAmounts[_addresses[i]] + _amounts[i]
-                    : _amounts[i];
+                var scriptHash = new List<byte>(_premintScriptHashes).GetRange(i * 20, 20).ToArray();
+                var amount = new BigInteger(new List<byte>(_premintAmounts).GetRange(i * 33, 33).ToArray());
+                scriptHashesToAmounts[scriptHash] = scriptHashesToAmounts.ContainsKey(scriptHash)
+                    ? scriptHashesToAmounts[scriptHash] + amount
+                    : amount;
             }
             
-            var balances = addressesToAmounts.Keys
-                .Select(a => _emulator.Execute(Operations.BalanceOf, a.GetScriptHashFromAddress()).GetBigInteger())
+            var balances = scriptHashesToAmounts.Keys
+                .Select(sh => _emulator.Execute(Operations.BalanceOf, sh).GetBigInteger())
                 .ToArray();
                     
-            var addressesToBalances = new Dictionary<string, BigInteger>();
+            var addressesToBalances = new Dictionary<byte[], BigInteger>(Comparer);
             var j = 0;
-            foreach (var a in addressesToAmounts.Keys)
+            foreach (var sh in scriptHashesToAmounts.Keys)
             {
-                addressesToBalances[a] = balances[j++];
+                addressesToBalances[sh] = balances[j++];
             }
             
-            foreach (var key in addressesToAmounts.Keys)
+            foreach (var key in scriptHashesToAmounts.Keys)
             {
-                Console.WriteLine($"Premint amount: {addressesToAmounts[key]}");
+                Console.WriteLine($"Premint amount: {scriptHashesToAmounts[key]}");
                 Console.WriteLine($"Premint balance: {addressesToBalances[key]}");
-                Assert.AreEqual(addressesToAmounts[key], addressesToBalances[key]);
+                Assert.AreEqual(scriptHashesToAmounts[key], addressesToBalances[key]);
             }
             
             var calculatedTotalSupply = BigInteger.Zero;
-            _amounts.ToList().ForEach(a => calculatedTotalSupply += a);
+            for (var i = 0; i < _premintCount; i++)
+            {
+                calculatedTotalSupply += new BigInteger(new List<byte>(_premintAmounts).GetRange(i * 33, 33).ToArray());
+            }
             var realTotalSupply = _emulator.Execute(Operations.TotalSupply).GetBigInteger();
             Console.WriteLine($"Total supply: {realTotalSupply}");
             Assert.AreEqual(calculatedTotalSupply, realTotalSupply, "TotalSupply should be equals");

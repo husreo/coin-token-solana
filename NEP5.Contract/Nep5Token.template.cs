@@ -14,18 +14,8 @@ namespace NEP5.Contract
         private static readonly byte[] InitialOwnerScriptHash = "D_OWNER".ToScriptHash();
         
         #if D_PREMINT_COUNT > 0
-        #ifdef D_PREMINT_ADDRESS_0
-        private static readonly byte[] PremintScriptHash0 = "D_PREMINT_ADDRESS_0".ToScriptHash();
-        private static readonly byte[] PremintAmount0 = {D_PREMINT_AMOUNT_0};
-        #endif
-        #ifdef D_PREMINT_ADDRESS_1
-        private static readonly byte[] PremintScriptHash1 = "D_PREMINT_ADDRESS_1".ToScriptHash();
-        private static readonly byte[] PremintAmount1 = {D_PREMINT_AMOUNT_1};
-        #endif
-        #ifdef D_PREMINT_ADDRESS_2
-        private static readonly byte[] PremintScriptHash2 = "D_PREMINT_ADDRESS_2".ToScriptHash();
-        private static readonly byte[] PremintAmount2 = {D_PREMINT_AMOUNT_2};
-        #endif
+        private static readonly byte[] PremintScriptHashes = {D_PREMINT_SCRIPT_HASHES};
+        private static readonly byte[] PremintAmounts = {D_PREMINT_AMOUNTS};
         #endif
         
         public static string CreationDateTime() => "__DATE__ __TIME__";
@@ -132,19 +122,12 @@ namespace NEP5.Contract
             }
             bool result = true;
             #if D_PREMINT_COUNT > 0
-            #ifdef D_PREMINT_ADDRESS_0
-            result = result && _Mint(PremintScriptHash0, PremintAmount0.AsBigInteger());
-            #endif
-            #ifdef D_PREMINT_ADDRESS_1
-            result = result && _Mint(PremintScriptHash1, PremintAmount1.AsBigInteger());
-            #endif
-            #ifdef D_PREMINT_ADDRESS_2
-            result = result && _Mint(PremintScriptHash2, PremintAmount2.AsBigInteger());
-            #endif
-            #endif
-            
-            #if defined(D_CONTINUE_MINTING) && !D_CONTINUE_MINTING
-            result = result && _FinishMinting();
+            for (int i = 0; i < D_PREMINT_COUNT; i++)
+            {
+                var scriptHash = PremintScriptHashes.Range(i * 20, 20);
+                var amount = PremintAmounts.Range(i * 33, 33);
+                result = result && _Mint(scriptHash, new BigInteger(amount));
+            }
             #endif
             
             Storage.Put(Storage.CurrentContext, Constants.Inited, Constants.Inited);
