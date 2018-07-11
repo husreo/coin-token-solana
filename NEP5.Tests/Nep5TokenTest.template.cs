@@ -330,7 +330,7 @@ namespace NEP5.Tests
             var tokensToMint = new BigInteger(10);
             var tokensToTransfer = new BigInteger(7);
 
-            ExecuteInitWithTransferringOwnership();
+            _emulator.checkWitnessMode = CheckWitnessMode.AlwaysTrue;
             var result = _emulator.Execute(Operations.Mint, _scriptHashes[0], tokensToMint).GetBoolean();
             Console.WriteLine($"Mint result: {result}");
 
@@ -494,7 +494,7 @@ namespace NEP5.Tests
         [Test]
         public void T32_CheckBalancesAfterTransferFrom()
         {
-            ExecuteInitWithTransferringOwnership();
+            _emulator.checkWitnessMode = CheckWitnessMode.AlwaysTrue;
             var tokensToMint = new BigInteger(5);
             var tokensToApprove = new BigInteger(4);
             var tokensToTransfer = new BigInteger(3);

@@ -130,6 +130,10 @@ namespace NEP5.Contract
             }
             #endif
             
+            #if defined(D_CONTINUE_MINTING) && !D_CONTINUE_MINTING
+            result = result && _FinishMinting();
+            #endif
+            
             Storage.Put(Storage.CurrentContext, Constants.Inited, Constants.Inited);
             Inited();
             return result;
